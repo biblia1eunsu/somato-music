@@ -232,7 +232,7 @@
     this.volume = Math.max(0, Math.min(1, v));
     if (!this.ready) return;
     const t = this.ctx.currentTime;
-    const target = this.playing ? Math.pow(this.volume, 1.25) * 0.9 : 0;
+    const target = this.playing ? Math.pow(this.volume, 1.2) * 1.1 : 0;
     this.master.gain.cancelScheduledValues(t);
     this.master.gain.setTargetAtTime(target, t, 0.18);
     this.fx.gain.setTargetAtTime(this.volume * 0.55, t, 0.15);
@@ -257,7 +257,7 @@
     this.playing = true;
     const t = this.ctx.currentTime;
     this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setTargetAtTime(Math.pow(this.volume, 1.25) * 0.9, t, 0.25);
+    this.master.gain.setTargetAtTime(Math.pow(this.volume, 1.2) * 1.1, t, 0.25);
   };
 
   Engine.prototype.stop = function (fade) {
@@ -482,7 +482,7 @@
     lfo.connect(lg).connect(filt.frequency);
     lfo.start(t); lfo.stop(t + dur + 4.5);
 
-    const peak = 0.05 * level * (0.9 + Math.random() * 0.2);
+    const peak = 0.058 * level * (0.9 + Math.random() * 0.2);
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(peak, t + 3.4);
     g.gain.setValueAtTime(peak, t + dur * 0.82);

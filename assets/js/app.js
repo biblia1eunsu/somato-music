@@ -338,10 +338,8 @@
         if (waited > 20000 && yt.adTimer) {
           clearInterval(yt.adTimer);
           yt.adBuiltin = false;
-          yt.playingBuiltin = true;
-          $('#sourceBadge').textContent = '내장 사운드';
-          $('#sourceBadge').classList.add('is-builtin');
           try { yt.player.pauseVideo(); } catch (e) {}
+          fallbackToBuiltin('유튜브 재생이 지연되어 내장 사운드로 이어갑니다.');
         }
       }
       if (waited > 95000 && yt.adTimer) {
