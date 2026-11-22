@@ -555,6 +555,51 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
   border:1px solid color-mix(in srgb,var(--btn-ink) 32%,transparent);color:inherit;
 }
 
+/* ── v29 ───────────────────────────────────────────
+   · 하단 버전 표기, 광고 안내, 새 버전 알림
+   · 선곡 관리에서 지금 흐르는 곡 표시 */
+.foot{display:flex;align-items:center;justify-content:center;gap:8px}
+.foot .ver{
+  font-size:8.5px;letter-spacing:.14em;color:var(--ink-3);text-transform:none;
+  border:1px solid var(--line);border-radius:999px;padding:1px 6px;opacity:.85;
+}
+.hint-ad{margin-top:14px;line-height:1.7}
+.hint-ad b{color:var(--ink-2)}
+.now-pos{
+  flex:none;margin-left:auto;font-size:9px;letter-spacing:.06em;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:visible;
+}
+/* 작은 유튜브 화면 위의 광고 안내 — 영상 아래쪽(건너뛰기 버튼)은 가리지 않습니다 */
+#ytHost .yt-note{display:none}
+#ytHost.is-vis .yt-note{
+  display:block;position:absolute;left:0;right:0;top:0;z-index:2;
+  padding:5px 34px 5px 9px;font-size:9.5px;line-height:1.4;letter-spacing:.01em;
+  color:#fff;background:linear-gradient(180deg,rgba(0,0,0,.72),rgba(0,0,0,0));
+  text-shadow:0 1px 2px rgba(0,0,0,.5);
+}
+#ytHost.is-vis .yt-note b{font-weight:600}
+/* 새 버전이 준비되었을 때 — 수업·대기 음악 중에는 끊지 않고 이 줄로 알립니다 */
+.update-bar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+  width:calc(100% - 44px);max-width:496px;display:flex;align-items:center;gap:11px;
+  padding:10px 12px 10px 16px;border-radius:16px;background:var(--btn-bg);color:var(--btn-ink);
+  box-shadow:var(--shadow);z-index:78;
+}
+.update-bar[hidden]{display:none}
+.update-bar span{flex:1;min-width:0;font-size:11px;letter-spacing:.01em}
+.update-bar button{
+  flex:none;font-size:10.5px;letter-spacing:.03em;padding:6px 12px;border-radius:999px;
+  border:1px solid color-mix(in srgb,var(--btn-ink) 32%,transparent);color:inherit;
+}
+.hard-refresh{margin-top:16px;height:44px;width:100%;font-size:12px}
+.sheet-note-tight{margin-top:7px;font-size:10.5px}
+/* 선곡 관리 — 지금 재생 중인 곡 */
+.trk.is-now .trk-title{color:var(--accent)}
+.trk.is-now .trk-title::after{
+  content:'재생 중';margin-left:7px;font-size:8.5px;letter-spacing:.06em;color:var(--accent);
+  border:1px solid var(--accent-soft);border-radius:999px;padding:1px 6px;vertical-align:1px;
+}
+
 @media (max-width:370px){
   .pl-btn{padding:0 8px}
   .pl-btn span{display:none}

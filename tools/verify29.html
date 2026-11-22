@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube 임베드·길이 재검증 v29</title>
+<style>
+body{font:13px/1.5 -apple-system,system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:12px}
+h1{font-size:15px;margin:0 0 6px}p{color:#999;margin:0 0 10px}
+#sum{margin:8px 0;color:#ddd;font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:11px}td,th{border-bottom:1px solid #262626;padding:3px 5px;text-align:left;vertical-align:top}
+.ok{color:#6ee7a0}.bad{color:#ff7a7a}.wait{color:#bbb}
+#hosts{position:fixed;right:4px;bottom:4px;width:170px;opacity:.08;pointer-events:none}
+.p{width:150px;height:84px}
+</style></head><body>
+<h1>YouTube 임베드·길이 재검증 v29</h1>
+<p>실제 IFrame 플레이어 5개로 병렬 재생. 101/150/2/5/100 오류 없이 영상 제목·길이가 로드되면 통과.</p>
+<div id="sum">대기 중…</div>
+<table><thead><tr><th>#</th><th>구간</th><th>ID</th><th>곡</th><th>결과</th><th>초</th></tr></thead><tbody id="tb"></tbody></table>
+<div id="hosts"></div>
+<script>
+const ITEMS = [{"part": "wait", "rank": 1, "t": "Relaxing Music for Stress Relief", "a": "Spiritual Moment", "id": "525KKRd_6Yo"}, {"part": "wait", "rank": 2, "t": "Spiritual Meditation", "a": "Spiritual Moment", "id": "8IERVdxTNBg"}, {"part": "wait", "rank": 3, "t": "Sunny Mornings", "a": "Peder B. Helland", "id": "_lhbeLfLwYQ"}, {"part": "wait", "rank": 4, "t": "Peaceful Day", "a": "Peder B. Helland", "id": "Xg-YcVVDqdw"}, {"part": "wait", "rank": 5, "t": "All Is Not Lost", "a": "Lisa Swerdlow", "id": "7R3H1fT1BHQ"}, {"part": "opening", "rank": 1, "t": "Koyasan", "a": "Deuter", "id": "Drk-0Laarjc"}, {"part": "opening", "rank": 2, "t": "East of the Full Moon", "a": "Deuter", "id": "7RLstyPt5gs"}, {"part": "opening", "rank": 3, "t": "Kiss of a Rose", "a": "Deuter", "id": "9Y_gigLpilk"}, {"part": "breath", "rank": 1, "t": "Tonglen", "a": "Deuter", "id": "FcMhSNiG59U"}, {"part": "soma", "rank": 1, "t": "Healing the Heart", "a": "Parijat", "id": "sEIyjyUi0No"}, {"part": "soma", "rank": 2, "t": "Forgiving", "a": "Parijat", "id": "9WGXaCY_GAU"}, {"part": "soma", "rank": 3, "t": "Inner Balance", "a": "Parijat", "id": "pTzJO637ymA"}, {"part": "mantra", "rank": 1, "t": "Gayatri Mantra", "a": "Deva Premal", "id": "se_WP1Mh0g8"}, {"part": "mantra", "rank": 2, "t": "Om Tare Tuttare", "a": "Deva Premal", "id": "y_8I4sAVi04"}, {"part": "mantra", "rank": 3, "t": "Om Ram Ramaya", "a": "Deva Premal", "id": "mZ4WhtQmw0Q"}, {"part": "pop", "rank": 1, "t": "Put Your Records On", "a": "Corinne Bailey Rae", "id": "rjOhZZyn30k"}, {"part": "pop", "rank": 2, "t": "Don't Know Why", "a": "Norah Jones", "id": "tO4dxvguQDk"}, {"part": "pop", "rank": 3, "t": "Come Away With Me", "a": "Norah Jones", "id": "lbjZPFBD6JU"}, {"part": "christmas", "rank": 1, "t": "O Holy Night", "a": "Rousseau", "id": "dwJ04_9LGrM"}, {"part": "christmas", "rank": 2, "t": "Silent Night", "a": "Rousseau", "id": "MhC90ReY49I"}, {"part": "christmas", "rank": 3, "t": "Carol of the Bells", "a": "Rousseau", "id": "Z3bNAvaQihA"}, {"part": "cooldown", "rank": 1, "t": "yume", "a": "Hideyuki Hashimoto", "id": "5e1qVg6AkBg"}, {"part": "cooldown", "rank": 2, "t": "kaze", "a": "Hideyuki Hashimoto", "id": "KTvslC44gsM"}, {"part": "cooldown", "rank": 3, "t": "Richter: Dream 11 / Moth-Like Stars (Pt. 1)", "a": "Max Richter", "id": "p3QPt9wrq4s"}, {"part": "cooldown", "rank": 4, "t": "Aqua", "a": "Ryuichi Sakamoto", "id": "W51tXJ1YwuA"}, {"part": "cooldown", "rank": 5, "t": "Nuvole Bianche", "a": "Ludovico Einaudi", "id": "sR2W2scFS4Y"}, {"part": "song", "rank": 1, "t": "바람의 노래 (Wind Song)", "a": "소향 Sohyang", "id": "NJdrQ2jjqOU"}, {"part": "song", "rank": 2, "t": "Hello", "a": "Adele", "id": "T1tl66trXTQ"}, {"part": "song", "rank": 3, "t": "Someone Like You", "a": "Adele", "id": "22c3_LoIfZQ"}, {"part": "piano", "rank": 1, "t": "As She Passes", "a": "Levi Patel", "id": "2SvKuIvwtXU"}, {"part": "piano", "rank": 2, "t": "And She Translated Into the Sky", "a": "Levi Patel", "id": "v9Blx4URf34"}, {"part": "piano", "rank": 3, "t": "N°056 (relaxing piano)", "a": "relaxdaily", "id": "x8noBB1NIys"}, {"part": "bowl", "rank": 1, "t": "Singing Bowl SoundScape", "a": "Brett Van Donsel", "id": "JAB-zW_L080"}, {"part": "bowl", "rank": 2, "t": "Devi Prayer", "a": "Hymn to the Divine Mother", "id": "MZ0h1sb1IFI"}, {"part": "bowl", "rank": 3, "t": "20분 사운드 배스 · 집중", "a": "Aurabowls", "id": "Rcp_PjxfPU0"}, {"part": "vocal", "rank": 2, "t": "Ishq' Allah", "a": "Deva Premal & Miten", "id": "gpSyVUh6chw"}, {"part": "vocal", "rank": 3, "t": "I Am (feat. Nirinjan Kaur)", "a": "Krishan · Nirinjan Kaur", "id": "PrS7eTkO5gM"}, {"part": "harp", "rank": 1, "t": "Watching the Wheat", "a": "Amy Turk", "id": "paXn1Q0aelA"}, {"part": "harp", "rank": 2, "t": "Courage", "a": "Amy Turk", "id": "xla3n9Uh6XM"}, {"part": "harp", "rank": 3, "t": "Clair de Lune", "a": "Amy Turk", "id": "Nz15gbUa-k4"}]; const _X = [{"id": "M2SbH6tFLOs", "part": "savasana:song", "t": "Colour Me In (Guardian Sessions)", "a": "Damien Rice", "rank": 0, "ref": 318}, {"id": "MLjuDsX4L6o", "part": "savasana:song", "t": "Colour Me In (Lyrics)", "a": "Damien Rice", "rank": 1, "ref": 318}, {"id": "Qow-4suLBPo", "part": "savasana:song", "t": "Colour Me In (HD)", "a": "Damien Rice", "rank": 2, "ref": 318}, {"id": "hDb3jZfWpoA", "part": "savasana:song", "t": "I Was Here (Beyonce official)", "a": "Beyonce", "rank": 0, "ref": 239}, {"id": "525KKRd_6Yo", "part": "wait", "t": "Relaxing Music for Stress Relief", "a": "Spiritual Moment", "rank": 0, "ref": 3757}];
+const WORKERS = 6, LIMIT = 15000, LABEL = "v29";
+window.__results = []; window.__done = false;
+const tb = document.getElementById('tb');
+const rows = ITEMS.map((it,i)=>{ const tr=document.createElement('tr');
+ tr.innerHTML = `<td>${i+1}</td><td>${it.part}</td><td>${it.id}</td><td>${(it.t+' — '+it.a).slice(0,58)}</td><td class="wait">·</td><td>0</td>`;
+ tb.appendChild(tr); return tr; });
+let next = 0, finished = 0; const players = [];
+function sum(){ const ok=window.__results.filter(r=>r.ok).length;
+ document.getElementById('sum').textContent = `${finished}/${ITEMS.length} · OK ${ok} · FAIL ${finished-ok}`; }
+window.onYouTubeIframeAPIReady = function(){
+ for(let w=0; w<WORKERS; w++){
+   const d=document.createElement('div'); d.className='p'; d.id='p'+w; document.getElementById('hosts').appendChild(d);
+   const st={i:-1, err:null, t0:0, timer:null, player:null, id:'', vid:''};
+   players.push(st);
+   st.player = new YT.Player('p'+w,{width:150,height:84,playerVars:{autoplay:0,controls:0,disablekb:1,fs:0,rel:0,modestbranding:1,playsinline:1,origin:location.origin},
+     events:{ onReady:()=>{try{st.player.mute();st.player.setVolume(0);}catch(e){} take(st);},
+              onError:(e)=>{ st.err=e.data; } }});
+ }
+};
+function take(st){
+ if(next>=ITEMS.length){ st.i=-1; return; }
+ st.i=next++; st.err=null; st.t0=Date.now(); st.vid='';
+ const it=ITEMS[st.i]; st.id=it.id;
+ rows[st.i].cells[4].textContent='확인 중…'; rows[st.i].cells[4].className='wait';
+ try{ st.player.loadVideoById({videoId:it.id,startSeconds:0}); }catch(e){ finish(st,false,'load '+e); return; }
+ clearInterval(st.timer);
+ st.timer=setInterval(()=>{ check(st); },250);
+}
+function check(st){
+ if(st.i<0) { clearInterval(st.timer); return; }
+ const it=ITEMS[st.i], ms=Date.now()-st.t0;
+ rows[st.i].cells[5].textContent=(ms/1000).toFixed(1);
+ let dur=0, vd={}, vtitle='';
+ try{ dur=st.player.getDuration()||0; vd=st.player.getVideoData()||{}; vtitle=vd.title||''; }catch(e){}
+ st.vid=vd.video_id||'';
+ if(st.err!=null){ finish(st,false,'error '+st.err); return; }
+ if(st.vid===it.id && dur>0 && vtitle){ finish(st,true,'ok '+Math.round(dur)+'s'); return; }
+ if(ms>LIMIT){ finish(st,false,'timeout dur='+Math.round(dur)+' vid='+st.vid); }
+}
+function finish(st,ok,note){
+ if(st.i<0) return;
+ if(rows[st.i].cells[4].textContent.startsWith('OK')||rows[st.i].cells[4].textContent.startsWith('FAIL')) return;
+ clearInterval(st.timer);
+ const it=ITEMS[st.i], secs=(Date.now()-st.t0)/1000;
+ let vtitle=''; try{ vtitle=(st.player.getVideoData()||{}).title||''; }catch(e){}
+ rows[st.i].cells[4].textContent=(ok?'OK':'FAIL')+' · '+note;
+ rows[st.i].cells[4].className=ok?'ok':'bad';
+ rows[st.i].cells[5].textContent=secs.toFixed(1);
+ window.__results.push({id:it.id,part:it.part,t:it.t,a:it.a,rank:it.rank,ok,note,secs:+secs.toFixed(1),vtitle});
+ finished++; sum();
+ setTimeout(()=>take(st),100);
+}
+function done(){ window.__done=true;
+ const ok=window.__results.filter(r=>r.ok).length;
+ document.getElementById('sum').textContent=`완료 — ${ITEMS.length}개 · OK ${ok} · FAIL ${ITEMS.length-ok}`;
+}
+const watch=setInterval(()=>{ if(finished>=ITEMS.length && ITEMS.length){ clearInterval(watch); done(); } },1000);
+function loadApi(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api';
+ s.onerror=()=>{document.getElementById('sum').textContent='IFrame API 로드 실패';}; document.head.appendChild(s); }
+loadApi();
+</script></body></html>

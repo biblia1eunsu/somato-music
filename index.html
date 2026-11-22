@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="stylesheet" href="assets/css/style.css?v=28k">
+<link rel="stylesheet" href="assets/css/style.css?v=29">
 <script>
 /* 진단용: 콘솔 오류를 조용히 모아 둡니다 (사용자 화면에는 영향 없음) */
 window.__somatoErrors = [];
@@ -79,6 +79,7 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
         </button>
       </div>
       <p class="hint" id="idleHint">대기 음악은 잔잔하게 반복됩니다. <b>선곡 관리</b>에서 곡을 직접 들어보고 빼실 수 있어요.</p>
+      <p class="hint hint-ad" id="adHint">유튜브 <b>광고</b>가 나오면 화면 아래에 잠깐 뜨는 작은 영상의 <b>건너뛰기</b>를 눌러 주세요.<br>사파리에서 유튜브에 로그인되어 있지 않으면 광고가 더 자주 나올 수 있어요.</p>
     </section>
 
     <!-- ── 수업 진행 화면 ─────────────────────────────── -->
@@ -104,7 +105,7 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
         </div>
         <div class="now-title" id="nowTitle">—</div>
         <div class="now-artist" id="nowArtist">—</div>
-        <div class="now-next"><span>다음</span><span id="nextTitle">—</span></div>
+        <div class="now-next"><span>다음</span><span id="nextTitle">—</span><span class="now-pos" id="queuePos"></span></div>
         <div class="wave" aria-hidden="true" id="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="now-actions">
           <button class="skip-btn" id="skipBtn" type="button" aria-label="다른 곡으로 바꾸기">
@@ -188,6 +189,7 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
 
   <footer class="foot">
     <span id="footStatus">대기 중</span>
+    <span class="ver" id="verBadge">v29</span>
   </footer>
 </div>
 
@@ -244,14 +246,18 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
 
   <p class="sheet-note">화면을 잠그면 iOS 정책상 <b>유튜브 임베드</b>는 멈출 수 있어요. 화면을 꺼야 할 때는 <b>화면 유지 + 다크 모드</b>를 함께 켜 두거나, 사운드 소스를 <b>내장 사운드</b>로 바꾸면 재생이 이어집니다.</p>
 
+  <p class="sheet-note">유튜브 <b>광고</b>는 앱이 미리 알 수 없어 재생되는 그대로 흘러갑니다. 광고가 나오면 화면 아래에 작은 유튜브 화면이 잠깐 떠서 그 자리에서 <b>건너뛰기</b>를 누르실 수 있어요. 사파리에서 유튜브에 로그인되어 있지 않으면 광고가 더 자주, 더 길게 나올 수 있습니다. 광고 없는 수업을 원하시면 사운드 소스를 <b>내장 사운드</b>로 바꿔 주세요.</p>
+
   <h3 class="sheet-sub">선곡</h3>
-  <p class="sheet-note">곡을 직접 들어보고 빼거나 첫 곡으로 올리는 일은 위쪽 <b>선곡 관리</b> 한 페이지에서 하실 수 있습니다. 유튜브 광고는 IFrame 플레이어가 알려주지 않아 그대로 재생될 수 있고, 앱은 광고 여부와 관계없이 <b>내장 사운드를 겹치지 않게</b> 합니다. 광고 없는 수업을 원하시면 사운드 소스를 <b>내장 사운드</b>로 바꿔 주세요.</p>
+  <p class="sheet-note">곡을 직접 들어보고 빼거나 첫 곡으로 올리는 일은 위쪽 <b>선곡 관리</b> 한 페이지에서 하실 수 있습니다. 선곡 관리에 보이는 순서 그대로 수업이 흘러갑니다.</p>
   <button class="btn-ghost" id="settingsPlaylistBtn" type="button">선곡 관리 열기</button>
 
   <div class="sheet-foot">
-    <span id="versionLine">somato-music · v1.0</span>
+    <span id="versionLine">somato-music · v29</span>
     <button class="link-btn danger" id="resetBtn" type="button">추가한 곡 초기화</button>
   </div>
+  <button class="btn-ghost hard-refresh" id="hardRefreshBtn" type="button">앱 새로고침 (저장된 캐시 비우기)</button>
+  <p class="sheet-note sheet-note-tight">새 버전이 나왔는데 화면이 그대로일 때 눌러 주세요. 저장해 둔 선곡(뺀 곡·첫 곡·추가한 곡)은 지워지지 않습니다.</p>
 </aside>
 
 <!-- ── 선곡 관리 (한 페이지) ───────────────────────── -->
@@ -282,11 +288,16 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<div id="ytHost" aria-hidden="true"><button class="yt-box-close" id="ytBoxClose" type="button" aria-label="작은 화면 닫기">✕</button></div>
+<div id="ytHost" aria-hidden="true"><span class="yt-note" id="ytNote">광고가 나오면 이 화면의 <b>건너뛰기</b>를 눌러 주세요</span><button class="yt-box-close" id="ytBoxClose" type="button" aria-label="작은 화면 닫기">✕</button></div>
+
+<div class="update-bar" id="updateBar" hidden>
+  <span>새 버전(v29)이 준비되었습니다.</span>
+  <button type="button" id="updateNowBtn">새로고침</button>
+</div>
 <div id="ytPreviewHost" aria-hidden="true"></div>
 
-<script src="assets/js/data.js?v=28k"></script>
-<script src="assets/js/audio-engine.js?v=28k"></script>
-<script src="assets/js/app.js?v=28k"></script>
+<script src="assets/js/data.js?v=29"></script>
+<script src="assets/js/audio-engine.js?v=29"></script>
+<script src="assets/js/app.js?v=29"></script>
 </body>
 </html>

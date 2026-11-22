@@ -15,6 +15,7 @@
   };
 
   const LS_KEY = 'somato-music:v1';
+  const APP_VERSION = 'v29';        // 화면 하단·설정에 표기하는 앱 버전 (sw.js 의 VERSION 과 같게)
   const FADE = 3500;   // 모든 전환은 약 3.5초 크로스페이드로 이어집니다
   const AMBIENT_SCALE = 0.68;   // 대기 음악은 설정 볼륨의 68%로 더 은은하게
   const VOLUME_CURVE = 2;       // 62% → 42% 로 낮춘 기본 볼륨 (한 번만 적용)
@@ -190,12 +191,13 @@
     while (pinN < list.length && pinSet.has(list[pinN].y)) pinN++;
     return { list: list, pinN: pinN, all: out };
   }
-  /* 재생 목록 — 앞에 고정한 곡은 순서를 지키고 그 뒤만 섞습니다.
-     고정한 곡이 없으면 원래 큐레이션의 첫 곡을 지킵니다. */
+  /* 재생 목록 — v29부터 **선곡 관리에 보이는 순서 그대로** 재생합니다.
+     (v28까지는 첫 곡만 두고 나머지를 섞어서, 선곡 관리의 2번째 곡이 실제로는 나중에 나왔습니다.
+      은수 님이 "선곡 관리와 나오는 음악이 다르다"고 느낀 가장 큰 원인입니다.)
+     앞에 고정한 곡(첫 곡 지정)은 orderedTracks 가 이미 맨 앞에 세워 둡니다. */
   function queuedList(key) {
     const o = orderedTracks(key);
-    const headN = o.pinN > 0 ? o.pinN : Math.min(1, o.list.length);
-    return o.list.slice(0, headN).concat(shuffle(o.list.slice(headN)));
+    return o.list.slice();
   }
 
   function pinCount(key) {
@@ -213,28 +215,20 @@
     const seed = d.getFullYear() * 372 + (d.getMonth() + 1) * 31 + d.getDate();
     return pools[seed % pools.length];
   }
-  /* 오늘의 랜덤 추천 — 감성곡과 가사 없는 힐링곡이 번갈아 섞인 대기열 */
+  /* 오늘의 랜덤 추천 — 감성곡과 가사 없는 힐링곡을 번갈아 섞되,
+     v29부터는 **매번 같은 순서**(각 목록의 선곡 순서대로 교차)로 이어집니다.
+     첫 곡은 언제나 선곡 관리의 감성곡 1번입니다. */
   function savaMixList() {
-    const song = queuedList('savasana:song');   // 고정한 곡 · 첫 곡은 큐레이션 순서를 지킵니다
-    const calm = shuffle(queuedList('savasana:piano')
-      .concat(queuedList('savasana:bowl'), queuedList('savasana:vocal')));
-    const rest = song.slice(1);
+    const song = queuedList('savasana:song');
+    const calm = queuedList('savasana:piano')
+      .concat(queuedList('savasana:bowl'), queuedList('savasana:vocal'));
     const out = [];
-    if (song[0]) out.push(song[0]);
-    const n = Math.max(rest.length, calm.length);
+    const n = Math.max(song.length, calm.length);
     for (let i = 0; i < n; i++) {
-      if (rest[i]) out.push(rest[i]);
+      if (song[i]) out.push(song[i]);
       if (calm[i]) out.push(calm[i]);
     }
     return out;
-  }
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
   }
 
   /* ── 재생 엔진 ──────────────────────────────── */
@@ -452,6 +446,8 @@
         try { yt.player.setVolume(0); yt.player.mute(); } catch (e) {}
         yt.volume = 0;
         setBadge('ad');
+        /* 광고가 나오는 동안에는 작은 유튜브 화면을 계속 띄워 둡니다(45초) —건너뛰기를 누를 수 있게 */
+        if (yt.startBoxOn) { clearTimeout(yt.boxTimer); yt.boxTimer = setTimeout(hideStartBox, 45000); }
         return;
       }
       /* 재생 중인지 — 브라우저에 따라 상태값이 -1 로 남는 경우가 있어 재생 시간으로도 봅니다.
@@ -505,9 +501,12 @@
     takeYT();                 // 내장 사운드 두 덱 즉시 완전 정지
     clearYTTimers();          // 이전 감시 · 예약 전환 · 정지 예약을 모두 취소
     yt.expected = track.y;
+    yt.nowY = track.y;            // 선곡 관리의 '재생 중' 표시용
+    yt.nowKey = yt.currentKey || '';
     yt.stallRetried = false;
     yt.bufferWaits = 0;
     renderNow(track);
+    markNowPlaying();
     setBadge('youtube');
     $('#nowCard').classList.add('is-playing');
 
@@ -561,6 +560,8 @@
 
   function startBuiltin(texture, label, fadeMs) {
     takeBuiltin();                 // 유튜브는 mute + stopVideo, 내장 덱은 정리
+    yt.nowY = ''; yt.nowKey = '';  // 선곡 관리의 '재생 중' 표시는 유튜브 곡에만 답니다
+    markNowPlaying();
     const eng = ensureAudio();
     ensureKeepAlive();
     eng.start(texture, { firstBowl: false, fadeMs: fadeMs || FADE });
@@ -671,8 +672,25 @@
   }
 
   function renderNext() {
-    const cur = yt.queue[yt.qi + 1] || yt.queue[0];
-    $('#nextTitle').textContent = cur ? (cur.t || '—') : '—';
+    const q = yt.queue || [];
+    const nx = q[yt.qi + 1] || q[0];
+    $('#nextTitle').textContent = nx ? (nx.t || '—') : '—';
+    /* 지금 곡이 선곡 관리 목록의 몇 번째인지 — 선곡 관리의 순서와 1:1로 맞춰 보실 수 있게 */
+    const pos = $('#queuePos');
+    if (pos) pos.textContent = q.length ? ((yt.qi + 1) + ' / ' + q.length) : '';
+    markNowPlaying();
+  }
+
+  /* 선곡 관리에서 지금 흐르는 곡에 '재생 중' 표시를 답니다 */
+  function markNowPlaying() {
+    const view = $('#playlistView');
+    if (!view || view.hidden) return;
+    const y = yt.nowY || '', key = yt.nowKey || '';
+    $$('#plBody .trk').forEach((row) => {
+      const sameKey = row.dataset.key === key ||
+        (key === 'savasana:mix' && String(row.dataset.key).indexOf('savasana:') === 0);
+      row.classList.toggle('is-now', !!y && row.dataset.y === y && sameKey);
+    });
   }
 
   /* 유튜브가 계속 열리지 않을 때 — 유튜브 모드에서는 내장 사운드로 마음대로 넘어가지 않고,
@@ -1114,7 +1132,9 @@
         yt.startToastShown = true;
         toast('유튜브 광고가 나오면 작은 화면의 건너뛰기를 눌러 주세요.');
       }
-    }    enterSection(0, { noChime: true });    if (state.chime) setTimeout(() => chime(), 900);
+    }
+    enterSection(0, { noChime: true });
+    if (state.chime) setTimeout(() => chime(), 900);
     requestWake();
     clearInterval(tickTimer);
     tickTimer = setInterval(tick, 400);
@@ -1661,6 +1681,7 @@
     }).join('');
     updateListCount();
     syncPreviewUI();
+    markNowPlaying();
   }
 
   function refreshGroup(key) {
@@ -1920,6 +1941,10 @@
     /* ── 선곡 관리 ─────────────────────────────── */
     const boxClose = $('#ytBoxClose');
     if (boxClose) boxClose.addEventListener('click', hideStartBox);
+    const hf = $('#hardRefreshBtn');
+    if (hf) hf.addEventListener('click', hardRefresh);
+    const un = $('#updateNowBtn');
+    if (un) un.addEventListener('click', applyUpdate);
     $('#playlistBtn').addEventListener('click', openPlaylist);
     $('#plClose').addEventListener('click', closePlaylist);
     $('#settingsPlaylistBtn').addEventListener('click', () => {
@@ -2003,6 +2028,72 @@
     window.addEventListener('beforeunload', () => { savePrefs(); });
   }
 
+  /* ── 버전 · 새 서비스워커 (v29) ──────────────────
+     홈 화면 아이콘으로 열어도 옛 캐시(v24~v28)가 남지 않도록,
+     새 워커가 설치되면 한 번 새로고침해 최신 v29 화면으로 바꿉니니다. */
+  const RELOAD_KEY = 'somato:lastReload';
+
+  function reloadNow() {
+    try { sessionStorage.setItem(RELOAD_KEY, String(Date.now())); } catch (e) {}
+    location.reload();
+  }
+
+  function showUpdateBar() {
+    const bar = $('#updateBar');
+    if (bar) bar.hidden = false;
+  }
+
+  function registerApp() {
+    if (!('serviceWorker' in navigator)) return;
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    const swap = () => {
+      if (reloading) return;
+      const last = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
+      if (Date.now() - last < 15000) return;          // 같은 새로고침을 두 번 하지 않습니다
+      if (mode !== 'idle' || state.ambientOn) { showUpdateBar(); return; }   // 수업·대기 음악은 끊지 않습니다
+      reloading = true;
+      reloadNow();
+    };
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+        if (reg.waiting && navigator.serviceWorker.controller) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) swap();
+          });
+        });
+        reg.update().catch(() => {});
+      }).catch(() => {});
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController) swap(); });
+  }
+
+  /* 앱 파일만 새로 받습니다 — 선곡 저장(빠진 곡·첫 곡·추가한 곡)은 그대로 둡니다 */
+  async function hardRefresh() {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+      if (window.caches && caches.keys) {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter((k) => k.indexOf('somato-music-') === 0).map((k) => caches.delete(k)));
+      }
+    } catch (e) {}
+    reloadNow();
+  }
+
+  function applyUpdate() {
+    try { sessionStorage.setItem(RELOAD_KEY, String(Date.now())); } catch (e) {}
+    try {
+      navigator.serviceWorker.getRegistration().then((r) => {
+        if (r && r.waiting) r.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }).catch(() => {});
+    } catch (e) {}
+    setTimeout(() => location.reload(), 700);
+  }
+
   /* ── 시작 ───────────────────────────────────── */
   function init() {
     loadPrefs();
@@ -2025,18 +2116,21 @@
     bind();
     setupMediaSession();
     ensureYT();
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-      });
+    const badge = $('#verBadge');
+    if (badge) badge.textContent = APP_VERSION;
+    const vline = $('#versionLine');
+    if (vline) {
+      vline.textContent = 'somato-music · ' + APP_VERSION + (DATA.version ? ' · 곡 목록 ' + DATA.version : '');
     }
-    if (DATA.version) $('#versionLine').textContent = 'somato-music · v' + DATA.version;
+    registerApp();
   }
 
   document.addEventListener('DOMContentLoaded', init);
   window.__somato = {
     state, buildPlan, orderedTracks, queuedList, openPlaylist, closePlaylist,
     setSavaMin, jumpTo,
+    get version() { return APP_VERSION; },
+    get queue() { return yt.queue; },
     get pv() { return pv; },
     get previewTrack() { return previewTrack; },
     get stopPreview() { return stopPreview; },
@@ -2052,7 +2146,8 @@
     builtinPlaying() { return !!(audio && audio.playing); },
     debug: {
       watchPlayback, fallbackToBuiltin, startBuiltin, fadeOutAll,
-      playSection, playAmbient, stopAmbient, chime
+      playSection, playAmbient, stopAmbient, chime,
+      startClass, nextTrack, skipTrack, hardRefresh
     }
   };
 })();
