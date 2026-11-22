@@ -260,6 +260,13 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
   margin-top:18px;padding:15px;border:1px solid var(--line);border-radius:18px;background:var(--surface-2);
 }
 .sava-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sava-head-actions{display:flex;align-items:center;gap:12px}
+.scan-btn{
+  padding:6px 12px;border-radius:999px;border:1px solid var(--accent-soft);
+  background:var(--accent-soft);color:var(--ink);font-size:11px;letter-spacing:.03em;
+  transition:all .2s ease;
+}
+.scan-btn[aria-pressed="true"]{background:var(--btn-bg);color:var(--btn-ink);border-color:var(--btn-bg)}
 .sava-title{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
 .link-btn{font-size:11px;color:var(--accent);letter-spacing:.02em;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 .sava-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}

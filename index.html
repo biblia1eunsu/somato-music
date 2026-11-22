@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="stylesheet" href="assets/css/style.css?v=15">
+<link rel="stylesheet" href="assets/css/style.css?v=16">
 <script>
 /* 진단용: 콘솔 오류를 조용히 모아 둡니다 (사용자 화면에는 영향 없음) */
 window.__somatoErrors = [];
@@ -131,12 +131,18 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
         <button class="toggle-pill" id="sourcePill" type="button" aria-pressed="false">
           <span class="dot"></span><span id="sourcePillLabel">유튜브</span>
         </button>
+        <button class="toggle-pill" id="scanPill" type="button" aria-pressed="false">
+          <span class="dot"></span>바디스캔 명상
+        </button>
       </div>
 
       <div class="sava-panel" id="savaPanel" hidden>
         <div class="sava-head">
           <span class="sava-title">사바아사나 음악</span>
-          <button class="link-btn" id="savaRandom" type="button">오늘의 랜덤 추천</button>
+          <span class="sava-head-actions">
+            <button class="scan-btn" id="bodyscanBtn" type="button" aria-pressed="false">바디스캔 명상</button>
+            <button class="link-btn" id="savaRandom" type="button">오늘의 랜덤 추천</button>
+          </span>
         </div>
         <div class="sava-chips" id="savaChips"></div>
       </div>
@@ -211,9 +217,11 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
   </div>
 
   <div class="setting-row">
-    <div><strong>화면 꺼짐 방지</strong><span>수업 중 아이폰·아이패드 화면을 켜 둡니다.</span></div>
+    <div><strong>화면 꺼짐 방지</strong><span>수업 중 아이폰·아이패드 화면을 켜 둡니다. 화면을 꺼도 재생이 이어지도록 잠금 화면 조작(재생·정지)도 지원합니다.</span></div>
     <label class="switch"><input type="checkbox" id="wakeSwitch" checked><span></span></label>
   </div>
+
+  <p class="sheet-note">화면을 잠그면 iOS 정책상 <b>유튜브 임베드</b>는 멈출 수 있어요. 화면을 꺼야 할 때는 <b>화면 유지 + 다크 모드</b>를 함께 켜 두거나, 사운드 소스를 <b>내장 사운드</b>로 바꾸면 재생이 이어집니다.</p>
 
   <h3 class="sheet-sub">유튜브 링크로 곡 추가</h3>
   <p class="sheet-note">유튜브에서 곡을 열어 주소를 복사한 뒤 붙여 넣으세요. 이 기기에만 저장됩니다.<br>유튜브 광고가 나오면 광고가 재생됩니다. 광고 없는 수업을 원하시면 사운드 소스를 <b>내장 사운드</b>로 바꿔 주세요.</p>
@@ -234,8 +242,8 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div id="ytHost" aria-hidden="true"></div>
 
-<script src="assets/js/data.js?v=15"></script>
-<script src="assets/js/audio-engine.js?v=15"></script>
-<script src="assets/js/app.js?v=15"></script>
+<script src="assets/js/data.js?v=16"></script>
+<script src="assets/js/audio-engine.js?v=16"></script>
+<script src="assets/js/app.js?v=16"></script>
 </body>
 </html>

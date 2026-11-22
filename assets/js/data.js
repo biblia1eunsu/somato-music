@@ -5,7 +5,7 @@
    · 은수 님의 사운드클라우드 · 지니뮤직 취향(만트라·스파·뉴에이지·네오클래식) 기준
    ───────────────────────────────────────────────────────────── */
 window.SOMATO_DATA = {
-  version: '1.0.0',
+  version: '2.0.0',
 
   tracks: {
     /* 수업 전 · 수업 후 대기 */
@@ -99,8 +99,52 @@ window.SOMATO_DATA = {
       { t: 'Ocean Harp Music', a: 'Sarah Bhalla', y: 'ZnuPTeyvm2c' }
     ],
 
-    /* 사바아사나 — 추천 풀 */
+    /* 사바아사나 — 추천 풀
+       song  : 은수 님이 보내주신 사바아사나 플레이리스트의 가사 있는 감성곡
+       piano : 가사 없는 힐링 건반 · 앰비언트 피아노
+       bodyscan : 바디스캔 명상용 초저자극 앰비언트 (멜로디 · 가사 없음) */
     savasana: {
+      song: [
+        { t: 'Wind Song (바람의 노래)', a: '소향 Sohyang', y: 'NJdrQ2jjqOU' },
+        { t: 'Something in the Rain', a: 'Rachael Yamagata', y: 'A1YAdFjdvx4' },
+        { t: 'Duet', a: 'Rachael Yamagata', y: 'KUuMyyZoYO4' },
+        { t: "You Won't Let Me", a: 'Rachael Yamagata', y: 'l3oIS8kWWn0' },
+        { t: 'Here With Me', a: 'Susie Suh × Robot Koch', y: 'YzR8BCmV9Ew' },
+        { t: 'Lokah Samastah Sukhino Bhavantu', a: 'Cabrini Asteriska', y: 'QAzsVYgwE2s' },
+        { t: 'Love Is Gone (Acoustic)', a: 'SLANDER ft. Dylan Matthew', y: 'hCrtcVDgCGw' },
+        { t: 'Moments', a: 'Micah Edwards', y: 'PFG8VCQ9pG0' },
+        { t: "Shouldn't Be", a: 'Luke Chiang', y: 'hsLiJP2rqS8' },
+        { t: "Nothing's Gonna Change My Love for You", a: 'Chendy 陳葦廷', y: 'T__HNxkZPCc' },
+        { t: '너의 모든 순간', a: '성시경', y: '1P3jzu6Mt6w' },
+        { t: 'Reasons to Stay', a: 'Kate Vogel', y: 'NNvwaTNqjik' },
+        { t: 'Exactly as It Is', a: 'Miten', y: 'zTqdBX5FChw' },
+        { t: '비와 당신', a: '이무진', y: 'sCmcSBsTxQc' },
+        { t: 'Your Song', a: '샘김 Sam Kim', y: 'JWfyto-1oT0' },
+        { t: '그 여름밤', a: '샘김 Sam Kim', y: 'jcuIJ9waAVw' },
+        { t: 'Come Away With Me', a: 'Norah Jones', y: 'lbjZPFBD6JU' },
+        { t: 'Fare Thee Well', a: 'Ashley Davis', y: 'bq3SXN3GWvI' },
+        { t: 'Love So True', a: 'Ashton Edminster', y: 'IsK0LL3qm5E' },
+        { t: 'Somebody New', a: 'Sophia James', y: 'kq24R_8jYg4' }
+      ],
+      piano: [
+        { t: 'As She Passes', a: 'Levi Patel', y: '2SvKuIvwtXU' },
+        { t: 'And She Translated Into the Sky', a: 'Levi Patel', y: 'v9Blx4URf34' },
+        { t: 'Grace (Deluxe)', a: 'Fiona Joy Hawkins', y: 'luee_gL4F8g' },
+        { t: 'Grace (Live in the Studio)', a: 'Fiona Joy Hawkins', y: 'HJT0qpEhyao' },
+        { t: 'Near Light', a: 'Ólafur Arnalds', y: '0kYc55bXJFI' },
+        { t: 'Threnody', a: 'Goldmund', y: 'kSRnuWAaeH8' },
+        { t: "Over There, It's Raining", a: 'Nils Frahm', y: '2P8PZbh53ec' },
+        { t: 'I Can Almost See You', a: 'Hammock', y: 'niCMpOkMcWU' },
+        { t: 'I Would Give My Breath Away', a: 'Hammock', y: '96DL94T21sw' },
+        { t: 'Indoor Swimming at the Space Station', a: 'Eluvium', y: '83JW5ZhVSWc' }
+      ],
+      bodyscan: [
+        { t: 'An Ending (Ascent)', a: 'Brian Eno', y: 'OlaTeXX3uH8' },
+        { t: 'Structures from Silence', a: 'Steve Roach', y: 'rt97c92WjRw' },
+        { t: 'Requiem for Dying Mothers, Pt. 2', a: 'Stars of the Lid', y: '_8aYF9PtQjA' },
+        { t: 'Requiem for Dying Mothers, Pt. 1', a: 'Stars of the Lid', y: '-bc37fU36Vk' },
+        { t: 'Indoor Swimming at the Space Station', a: 'Eluvium', y: '83JW5ZhVSWc' }
+      ],
       bowl: [
         { t: '7 Chakra Singing Bowls (70분)', a: 'templesounds', y: 'Nb3okem4OCk' },
         { t: '7 Chakra Continuous Meditation', a: 'templesounds', y: 'iT6w3cEkpm0' },

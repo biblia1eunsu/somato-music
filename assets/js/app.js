@@ -15,6 +15,7 @@
   };
 
   const LS_KEY = 'somato-music:v1';
+  const FADE = 3500;   // 모든 전환은 약 3.5초 크로스페이드로 이어집니다
   const DEFAULT_PREFS = {
     theme: 'classic', bridge: 4, pool: 'random', volume: 62,
     sourceMode: 'auto', chime: true, wake: true, dark: false, custom: {}
@@ -27,6 +28,8 @@
   let tickTimer = null;
   let wakeLock = null;
   let audio = null;
+  let keepAlive = null;          // iOS 백그라운드 유지용 <audio>
+  let bodyscanOn = false;        // 바디스캔 명상 모드 (저장하지 않는 런타임 상태)
 
   /* ── 저장 ───────────────────────────────────── */
   function loadPrefs() {
@@ -76,9 +79,12 @@
   };
 
   const SAVA_POOLS = {
-    random: { name: '오늘의 랜덤 추천', short: '랜덤', texture: 'sava-bowl' },
+    random: { name: '오늘의 랜덤 추천 · 감성곡 + 힐링곡', short: '랜덤', texture: 'sava-bowl' },
+    song: { name: '감성곡 · 가사 있는 사바아사나', short: '감성곡', texture: 'sava-song' },
+    piano: { name: '가사 없는 힐링 건반', short: '건반', texture: 'sava-piano' },
     bowl: { name: '싱잉볼 · 명상', short: '싱잉볼', texture: 'sava-bowl' },
-    vocal: { name: '보컬 힐링', short: '보컬', texture: 'sava-vocal' },
+    vocal: { name: '만트라 · 보컬 힐링', short: '만트라', texture: 'sava-vocal' },
+    bodyscan: { name: '바디스캔 · 잔잔한 앰비언트', short: '바디스캔', texture: 'bodyscan' },
     nature: { name: '자연의 밤 · 빗소리', short: '자연음', texture: 'sava-nature-rain' },
     harp: { name: '하프 · 오르골', short: '하프', texture: 'sava-harp' },
     christmas: { name: '크리스마스 잔잔한 캐롤', short: '캐롤', texture: 'sava-xmas' }
@@ -142,14 +148,28 @@
   }
   function keyForSection(sec, index) {
     if (sec.id === 'flow') return 'flow:' + state.theme;
-    if (sec.id === 'savasana') return 'savasana:' + (state.pool === 'random' ? todayPool() : state.pool);
+    if (sec.id === 'savasana') return 'savasana:' + (state.pool === 'random' ? 'mix' : state.pool);
     return sec.id;
   }
   function todayPool() {
-    const pools = ['bowl', 'vocal', 'nature', 'harp', 'christmas'];
+    // 오늘의 랜덤 추천 — 내장 사운드 결은 날짜에 따라 정갈하게 고릅니다
+    const pools = ['sava-song', 'sava-piano', 'sava-bowl', 'sava-vocal', 'sava-harp'];
     const d = new Date();
     const seed = d.getFullYear() * 372 + (d.getMonth() + 1) * 31 + d.getDate();
     return pools[seed % pools.length];
+  }
+  /* 오늘의 랜덤 추천 — 감성곡과 가사 없는 힐링곡이 번갈아 섞인 대기열 */
+  function savaMixList() {
+    const song = shuffle(tracksFor('savasana:song'));
+    const calm = shuffle(tracksFor('savasana:piano')
+      .concat(tracksFor('savasana:bowl'), tracksFor('savasana:vocal')));
+    const out = [];
+    const n = Math.max(song.length, calm.length);
+    for (let i = 0; i < n; i++) {
+      if (song[i]) out.push(song[i]);
+      if (calm[i]) out.push(calm[i]);
+    }
+    return out;
   }
   function shuffle(arr) {
     const a = arr.slice();
@@ -211,7 +231,7 @@
           },
           onStateChange: (e) => {
             if (e.data === 1) { yt.errors = 0; clearWatchdog(); }
-            if (e.data === 0) nextTrack();
+            if (e.data === 0) nextTrack(true, { crossfade: false });
           },
           onError: (e) => {
             const code = e.data;
@@ -220,7 +240,7 @@
               const cur = yt.queue[yt.qi];
               if (cur) cur.failed = true;
               if (yt.errors >= 2) fallbackToBuiltin('유튜브 재생이 제한되어 내장 사운드로 이어갑니다.');
-              else nextTrack(true);
+              else nextTrack(true, { crossfade: false });
             } else {
               fallbackToBuiltin('재생이 지연되어 내장 사운드로 이어갑니다.');
             }
@@ -234,11 +254,14 @@
     if (!yt.player || !yt.player.setVolume) return;
     clearInterval(yt.fadeTimer);
     const from = yt.volume;
-    const steps = Math.max(1, Math.round(ms / 60));
+    const steps = Math.max(1, Math.round((ms || FADE) / 60));
     let i = 0;
+    // S-커브: 처음과 끝을 부드럽게
     yt.fadeTimer = setInterval(() => {
       i++;
-      const v = from + (target - from) * (i / steps);
+      const s = i / steps;
+      const e = s * s * (3 - 2 * s);
+      const v = from + (target - from) * e;
       yt.volume = v;
       try { yt.player.setVolume(clamp(v, 0, 100)); } catch (e) {}
       if (i >= steps) clearInterval(yt.fadeTimer);
@@ -284,6 +307,8 @@
         if (!yt.adBuiltin) { yt.adBuiltin = true; startAdBed(); }
       } else if (dur >= 100) {
         if (yt.adBuiltin) stopAdBed();
+        // 광고가 끈 뒤 본 영상이 서 있으면 다시 재생합니다
+        try { const st = yt.player.getPlayerState(); if (st === -1 || st === 2) yt.player.playVideo(); } catch (e) {}
         ytFadeTo(state.volume, 1600);
         clearInterval(yt.adTimer);
       }
@@ -295,34 +320,61 @@
     }, 500);
   }
 
-  function ytPlayTrack(track) {
+  function ytPlayTrack(track, opts) {
+    opts = opts || {};
     if (!track || !track.y || !yt.player || !yt.ready) return false;
-    yt.playingBuiltin = false;
     yt.expected = track.y;
-    yt.adBuiltin = false;
-    stopBuiltin();
-    ytFadeTo(0, 700);
-    clearWatchdog();
-    yt.watchdog = setTimeout(() => {
-      try {
-        const ct = yt.player.getCurrentTime();
-        const st = yt.player.getPlayerState();
-        if (ct > 0.5 || st === 3) return;   // 재생·버퍼링 중이면 기다립니다
-        yt.errors++;
-        nextTrack(true);
-      } catch (e) {}
-    }, 20000);
-    try {
-      yt.player.loadVideoById({ videoId: track.y, startSeconds: 0 });
-      setTimeout(() => {
-        try { yt.player.setVolume(0); yt.player.playVideo(); } catch (e) {}
-      }, 380);
-    } catch (e) { return false; }
-    watchAd();
     renderNow(track);
     $('#sourceBadge').textContent = 'YouTube';
     $('#sourceBadge').classList.remove('is-builtin');
     $('#nowCard').classList.add('is-playing');
+
+    /* 전환 중이던 예약이 있으면 덮어쓰지 않도록 정리 */
+    clearTimeout(yt.transitionTimer);
+
+    const doLoad = () => {
+      yt.playingBuiltin = false;
+      yt.adBuiltin = false;
+      stopBuiltin(FADE / 1000);   // 내장 사운드가 나고 있었다면 3.5초에 걸쳐 겹치며 사라집니다
+      clearWatchdog();
+      yt.stallRetried = false;
+      const armWatchdog = () => {
+        yt.watchdog = setTimeout(() => {
+          try {
+            const ct = yt.player.getCurrentTime();
+            const st = yt.player.getPlayerState();
+            if (ct > 0.5 || st === 3) return;   // 재생·버퍼링 중이면 기다립니다
+            if ((st === -1 || st === 2) && !yt.stallRetried) {
+              // 광고가 끈 뒤 시작하지 않으면 — 같은 곡을 새로 불러옵니다 (새 로드는 다시 시작됩니다)
+              yt.stallRetried = true;
+              try { yt.player.loadVideoById({ videoId: track.y, startSeconds: 0 }); } catch (e) {}
+              setTimeout(() => { try { yt.player.setVolume(0); yt.volume = 0; yt.player.playVideo(); } catch (e) {} }, 380);
+              armWatchdog();
+              return;
+            }
+            yt.errors++;
+            nextTrack(true, { crossfade: false });
+          } catch (e) {}
+        }, 20000);
+      };
+      armWatchdog();
+      try {
+        yt.player.loadVideoById({ videoId: track.y, startSeconds: 0 });
+        setTimeout(() => {
+          try { yt.player.setVolume(0); yt.volume = 0; yt.player.playVideo(); } catch (e) {}
+        }, 380);
+      } catch (e) { return; }
+      watchAd();
+      ytFadeTo(state.volume, opts.crossfade === false ? 900 : FADE);
+    };
+
+    /* 지금 소리가 나고 있으면 먼저 3.5초에 걸쳐 줄인 뒤 새 곡이 0에서 3.5초 동안 올라옵니다 */
+    if (opts.crossfade !== false && ytAudible()) {
+      ytFadeTo(0, opts.fadeOut || FADE);
+      yt.transitionTimer = setTimeout(doLoad, (opts.fadeOut || FADE) + 150);
+    } else {
+      doLoad();
+    }
     return true;
   }
 
@@ -336,19 +388,30 @@
     return sec.texture || 'waiting';
   }
 
-  function startBuiltin(texture, label) {
+  /* 지금 유튜브에서 소리가 나고 있는지 — 크로스페이드가 필요한지 판단할 때 씁니다 */
+  function ytAudible() {
+    return !yt.playingBuiltin && !yt.adBuiltin && yt.volume > 2 && !!yt.player;
+  }
+
+  function startBuiltin(texture, label, fadeMs) {
     const eng = ensureAudio();
+    ensureKeepAlive();
     yt.playingBuiltin = true;
-    if (yt.player) ytFadeTo(0, 700);
-    eng.start(texture, { firstBowl: false });
-    if (yt.player && !yt.adBuiltin) setTimeout(() => { try { yt.player.pauseVideo(); } catch (e) {} }, 900);
-    $('#sourceBadge').textContent = '내장 사운드';
+    if (yt.player && ytAudible()) {
+      ytFadeTo(0, fadeMs || FADE);
+      setTimeout(() => { try { yt.player.pauseVideo(); } catch (e) {} }, (fadeMs || FADE) + 250);
+    } else if (yt.player) {
+      ytFadeTo(0, 500);
+      setTimeout(() => { try { yt.player.pauseVideo(); } catch (e) {} }, 700);
+    }
+    eng.start(texture, { firstBowl: false, fadeMs: fadeMs || FADE });
+    $('#sourceBadge').textContent = texture === 'bodyscan' ? '내장 사운드 · 바디스캔' : '내장 사운드';
     $('#sourceBadge').classList.add('is-builtin');
     $('#nowCard').classList.add('is-playing');
     renderBuiltin(label || builtinLabel(texture));
   }
-  function stopBuiltin() {
-    if (audio && audio.playing) audio.stop(1.2);
+  function stopBuiltin(sec) {
+    if (audio && audio.playing) audio.stop(sec == null ? 1.2 : sec);
     yt.playingBuiltin = false;
   }
   function builtinLabel(texture) {
@@ -362,6 +425,9 @@
       'flow-xmas': ['오르골 캐럴', '잔잔한 연말 결'],
       cooldown: ['이완 하프', '느린 아르페지오'],
       closing: ['마무리 패드', '아주 낮은 호흡'],
+      bodyscan: ['바디스캔 명상', '가사 없는 낮은 드론 · 숨결'],
+      'sava-song': ['감성 사바아사나 패드', '잔잔한 결의 내장 사운드'],
+      'sava-piano': ['사바아사나 피아노', '느리고 낮은 건반'],
       'sava-bowl': ['싱잉볼 사운드스케이프', '주기적인 타종'],
       'sava-vocal': ['보컬 힐링 패드', '아- 코러스'],
       'sava-nature-rain': ['빗소리 · 낮은 패드', '창밖의 비'],
@@ -378,12 +444,71 @@
     $('#nowTitle').textContent = label.t;
     $('#nowArtist').textContent = label.a;
     $('#nextTitle').textContent = '실시간으로 생성되는 사운드';
+    updateMediaSession({ t: label.t, a: label.a }, true);
   }
 
   function renderNow(track) {
     if (!track) return;
     $('#nowTitle').textContent = track.t || '—';
     $('#nowArtist').textContent = track.a || '—';
+    updateMediaSession(track, false);
+  }
+
+  /* ── MediaSession — 잠금 화면 · 이어폰 버튼으로 조작 ── */
+  function setupMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    const ms = navigator.mediaSession;
+    const act = (name, fn) => { try { ms.setActionHandler(name, fn); } catch (e) {} };
+    act('play', () => {
+      if (mode === 'class' && $('#app').classList.contains('is-paused')) togglePause();
+      else if (mode !== 'class' && !state.ambientOn) playAmbient();
+      if (keepAlive && keepAlive.paused) keepAlive.play().catch(() => {});
+    });
+    act('pause', () => {
+      if (mode === 'class' && !$('#app').classList.contains('is-paused')) togglePause();
+      else if (mode !== 'class' && state.ambientOn) stopAmbient();
+    });
+    act('previoustrack', () => { if (mode === 'class') prevTrack(); });
+    act('nexttrack', () => { if (mode === 'class') nextTrack(); });
+  }
+  function updateMediaSession(track, builtin) {
+    if (!('mediaSession' in navigator) || !window.MediaMetadata) return;
+    try {
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: (track && track.t) || '소마토센서리 요가',
+        artist: (track && track.a) || '',
+        album: builtin ? '내장 힐링 사운드' : '소마토센서리 요가 클래스',
+        artwork: [{ src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }]
+      });
+      navigator.mediaSession.playbackState = 'playing';
+    } catch (e) {}
+  }
+
+  /* ── iOS 백그라운드 유지 — Web Audio 를 <audio> 로 내보냅니다 ──
+     iOS 사파리는 화면이 꺼지면 Web Audio 가 멈추지만, MediaStreamDestination 으로
+     이어준 <audio> 엘리먼트가 재생 중이면 오디오 세션이 유지됩니다. */
+  function ensureKeepAlive() {
+    const eng = ensureAudio();
+    if (!eng.streamDest) return;
+    if (keepAlive) {
+      if (keepAlive.paused) keepAlive.play().catch(() => {});
+      return;
+    }
+    try {
+      keepAlive = new Audio();
+      keepAlive.srcObject = eng.streamDest.stream;
+      keepAlive.volume = 1;
+      keepAlive.setAttribute('playsinline', '');
+      keepAlive.setAttribute('webkit-playsinline', '');
+      keepAlive.autoplay = true;
+      keepAlive.addEventListener('playing', () => {
+        try { eng.useElement(true); } catch (e) {}   // 엘리먼트가 소리를 내기 시작하면 직접 출력은 겹치지 않게 끕니다
+      }, { once: true });
+      keepAlive.addEventListener('error', () => {
+        try { eng.useElement(false); } catch (e) {}
+      });
+      keepAlive.play().catch(() => {});
+    } catch (e) { keepAlive = null; }
   }
 
   function renderNext() {
@@ -401,7 +526,7 @@
     $('#footStatus').textContent = '내장 사운드 재생 중';
   }
 
-  function nextTrack(auto) {
+  function nextTrack(auto, opts) {
     if (yt.queue.length === 0) return;
     let guard = 0;
     do {
@@ -416,7 +541,7 @@
       startBuiltin(sectionTexture(sec));
       return;
     }
-    ytPlayTrack(cur);
+    ytPlayTrack(cur, opts || (auto ? { crossfade: false } : {}));
     renderNext();
   }
   function prevTrack() {
@@ -433,7 +558,7 @@
 
   function playPool(key, opts) {
     yt.currentKey = key;
-    const list = tracksFor(key);
+    const list = key === 'savasana:mix' ? savaMixList() : tracksFor(key);
     // 첫 곡은 큐레이션 순서를 지키고, 그 뒤만 섞습니다.
     yt.queue = list.length ? [list[0]].concat(shuffle(list.slice(1))) : [];
     yt.qi = 0;
@@ -478,14 +603,33 @@
     ytPlayTrack(list[0]);
     renderNext();
   }
-  function stopAmbient() {
+  /* 대기 음악을 갑자기 끊지 않고, 수업 첫 구간이 페이드 인하는 동안 겹치며 줄입니다 */
+  function endAmbientSoft() {
+    state.ambientOn = false;
+    $('#ambientBtn').setAttribute('aria-pressed', 'false');
+    $('#ambientBtnLabel').textContent = '대기 음악 켜기';
+    if (yt.player && ytAudible()) {
+      ytFadeTo(0, FADE);
+      setTimeout(() => { try { yt.player.stopVideo(); } catch (e) {} }, FADE + 250);
+    } else if (yt.player) {
+      setTimeout(() => { try { yt.player.stopVideo(); } catch (e) {} }, 300);
+    }
+    if (audio && audio.playing) audio.stop(FADE / 1000);
+    yt.queue = [];
+  }
+
+  function stopAmbient(fadeMs) {
     state.ambientOn = false;
     $('#ambientBtn').setAttribute('aria-pressed', 'false');
     $('#ambientBtnLabel').textContent = '대기 음악 켜기';
     $('#footStatus').textContent = '대기 중';
-    if (yt.player) ytFadeTo(0, 700);
-    setTimeout(() => { try { if (yt.player) yt.player.stopVideo(); } catch (e) {} }, 800);
-    stopBuiltin();
+    if (yt.player && ytAudible()) {
+      ytFadeTo(0, fadeMs || FADE);
+      setTimeout(() => { try { if (yt.player) yt.player.stopVideo(); } catch (e) {} }, (fadeMs || FADE) + 250);
+    } else if (yt.player) {
+      setTimeout(() => { try { if (yt.player) yt.player.stopVideo(); } catch (e) {} }, 300);
+    }
+    stopBuiltin(fadeMs ? fadeMs / 1000 : undefined);
     yt.queue = [];
     $('#nowCard') && $('#nowCard').classList.remove('is-playing');
   }
@@ -511,7 +655,7 @@
   function renderIdleChoices() {
     $('#idleThemeValue').textContent = FLOW_THEMES[state.theme].name;
     $('#idleSavaValue').textContent = state.pool === 'random'
-      ? '오늘의 랜덤 추천' : SAVA_POOLS[state.pool].name;
+      ? '오늘의 랜덤 추천 · 감성곡 + 힐링곡' : SAVA_POOLS[state.pool].name;
     $('#themePillLabel').textContent = FLOW_THEMES[state.theme].short;
   }
 
@@ -539,12 +683,13 @@
     if (sec.id === 'flow') desc = FLOW_THEMES[state.theme].desc;
     if (sec.id === 'savasana') {
       desc = (state.pool === 'random' ? '오늘의 랜덤 추천 · ' : '') +
-        SAVA_POOLS[state.pool === 'random' ? todayPool() : state.pool].name;
+        SAVA_POOLS[state.pool === 'random' ? 'random' : state.pool].name;
     }
     $('#sectionDesc').textContent = desc;
     updateSegments(idx);
     $('#savaPanel').hidden = sec.id !== 'savasana';
     if (sec.id === 'savasana') renderSavaChips();
+    if (bodyscanOn) setBodyscan(false, { quiet: true, skipResume: true });
 
     const prev = plan[idx - 1];
     if (state.chime && sec.id === 'savasana' && !opts.noChime) chime();
@@ -596,7 +741,7 @@
     activeIndex = -1;
     $('#app').classList.remove('is-paused');
     $('#playBtn').setAttribute('aria-label', '일시정지');
-    if (state.ambientOn) stopAmbient();
+    if (state.ambientOn) endAmbientSoft();   // 대기 음악은 3.5초에 걸쳐 줄어들고 수업 음악이 그 위에서 서서히 올라옵니다
     ensureAudio();
     ensureYT();
     enterSection(0, { noChime: true });
@@ -613,6 +758,7 @@
     clearInterval(tickTimer);
     const total = planTotalMs();
     showScreen('done');
+    if (bodyscanOn) setBodyscan(false, { quiet: true, skipResume: true });
     if (yt.player) ytFadeTo(0, 1800);
     setTimeout(() => { try { if (yt.player) yt.player.stopVideo(); } catch (e) {} }, 1900);
     stopBuiltin();
@@ -650,12 +796,15 @@
       $('#app').classList.remove('is-paused');
       $('#playBtn').setAttribute('aria-label', '일시정지');
       $('#nowCard').classList.add('is-playing');
-      if (yt.playingBuiltin || state.sourceMode === 'builtin' || !yt.ready) {
+      if (bodyscanOn) {
+        startBuiltin('bodyscan', { t: '바디스캔 명상', a: '가사 없는 낮은 드론 · 숨결' });
+      } else if (yt.playingBuiltin || state.sourceMode === 'builtin' || !yt.ready) {
         const sec = plan[activeIndex];
         startBuiltin(sectionTexture(sec));
       } else if (yt.player) {
         try { yt.player.playVideo(); } catch (e) {}
       }
+      if (keepAlive && keepAlive.paused) keepAlive.play().catch(() => {});
       requestWake();
       $('#footStatus').textContent = '수업 진행 중';
     }
@@ -667,6 +816,7 @@
     if (wakeLock) return;
     try {
       wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
       $('#wakePill').setAttribute('aria-pressed', 'true');
     } catch (e) {}
   }
@@ -727,8 +877,10 @@
       ['opening', '오프닝'], ['bridge', '피아노 브릿지'],
       ['flow:classic', '플로우 · 클래식'], ['flow:neoclassic', '플로우 · 네오클래식'],
       ['flow:mantra', '플로우 · 만트라'], ['flow:christmas', '플로우 · 캐럴'],
-      ['cooldown', '컴다운'], ['savasana:bowl', '사바아사나 · 싱잉볼'],
-      ['savasana:vocal', '사바아사나 · 보컬'], ['savasana:nature', '사바아사나 · 자연음'],
+      ['cooldown', '컴다운'], ['savasana:song', '사바아사나 · 감성곡'],
+      ['savasana:piano', '사바아사나 · 건반'], ['savasana:bowl', '사바아사나 · 싱잉볼'],
+      ['savasana:vocal', '사바아사나 · 만트라'], ['savasana:bodyscan', '사바아사나 · 바디스캔'],
+      ['savasana:nature', '사바아사나 · 자연음'],
       ['savasana:harp', '사바아사나 · 하프'], ['savasana:christmas', '사바아사나 · 캐럴'],
       ['closing', '마무리'], ['wait', '대기 음악']
     ];
@@ -836,7 +988,7 @@
       savePrefs();
       updateSourcePill();
       $('#sourceSelect').value = state.sourceMode;
-      if (mode === 'class') playSection(activeIndex);
+      if (mode === 'class' && !bodyscanOn) playSection(activeIndex);
       if (mode === 'idle' && state.ambientOn) playAmbient();
       toast(state.sourceMode === 'builtin' ? '내장 힐링 사운드로 재생합니다.' : '유튜브 음원으로 재생합니다.');
     });
@@ -876,10 +1028,18 @@
       toast('오늘의 랜덤 추천으로 바꿨습니다.');
     });
 
+    /* 바디스캔 명상 — 사바아사나 패널 버튼과 수업 컨트롤 칩이 함께 켜고 끕니다 */
+    const scanToggle = () => {
+      if (mode !== 'class') { toast('수업 중 사바아사나 시간에 사용하실 수 있어요.'); return; }
+      setBodyscan(!bodyscanOn);
+    };
+    $('#scanPill').addEventListener('click', scanToggle);
+    $('#bodyscanBtn').addEventListener('click', scanToggle);
+
     $('#sourceSelect').addEventListener('change', (e) => {
       state.sourceMode = e.target.value; savePrefs();
       updateSourcePill();
-      if (mode === 'class') playSection(activeIndex);
+      if (mode === 'class' && !bodyscanOn) playSection(activeIndex);
       if (mode === 'idle' && state.ambientOn) playAmbient();
     });
     $('#chimeSwitch').addEventListener('change', (e) => {
@@ -913,8 +1073,16 @@
     });
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && mode === 'class' && state.wake) requestWake();
+      if (document.visibilityState !== 'visible') return;
+      // 화면으로 돌아오면 화면 유지와 오디오를 되찾습니다
+      if (state.wake && (mode === 'class' || (mode === 'idle' && state.ambientOn))) requestWake();
+      if (audio) audio.resume();
+      if (audio && audio.playing && keepAlive && keepAlive.paused) keepAlive.play().catch(() => {});
     });
+    // iOS 잠금 상태에서 오디오 세션이 끊기지 않게 재생 엘리먼트를 지켜봅니다
+    setInterval(() => {
+      if (audio && audio.playing && keepAlive && keepAlive.paused) keepAlive.play().catch(() => {});
+    }, 30000);
     window.addEventListener('beforeunload', () => { savePrefs(); });
   }
 
@@ -936,6 +1104,7 @@
     updateSourcePill();
     $('#wakePill').setAttribute('aria-pressed', String(!!state.wake));
     bind();
+    setupMediaSession();
     ensureYT();
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
