@@ -307,13 +307,26 @@
         try { yt.player.setVolume(0); } catch (e) {}
         if (!yt.adBuiltin) { yt.adBuiltin = true; startAdBed(); }
       } else if (dur >= 100) {
-        if (yt.adBuiltin) stopAdBed();
-        // 광고가 끈 뒤 본 영상이 서 있으면 다시 재생합니다
-        try { const st = yt.player.getPlayerState(); if (st === -1 || st === 2) yt.player.playVideo(); } catch (e) {}
-        ytFadeTo(state.volume, 1600);
-        clearInterval(yt.adTimer);
+        // 본 영상 구간 — 실제로 재생이 시작됐을 때만 내장 사운드를 물립니다
+        if (st === 1 || st === 3 || st === 2) {
+          if (st === 2 || st === -1) { try { yt.player.playVideo(); } catch (e) {} }
+          if (st === 1 || st === 3) {
+            if (yt.adBuiltin) stopAdBed();
+            ytFadeTo(state.volume, 1600);
+            clearInterval(yt.adTimer);
+          }
+        }
+        // 광고가 끈 뒤 본 영상이 20초 넘게 시작하지 않으면 내장 사운드로 이 구간을 계속합니다
+        if (waited > 20000 && yt.adTimer) {
+          clearInterval(yt.adTimer);
+          yt.adBuiltin = false;
+          yt.playingBuiltin = true;
+          $('#sourceBadge').textContent = '내장 사운드';
+          $('#sourceBadge').classList.add('is-builtin');
+          try { yt.player.pauseVideo(); } catch (e) {}
+        }
       }
-      if (waited > 95000) {
+      if (waited > 95000 && yt.adTimer) {
         if (yt.adBuiltin) stopAdBed();
         ytFadeTo(state.volume, 1500);
         clearInterval(yt.adTimer);
@@ -338,25 +351,23 @@
       yt.adBuiltin = false;
       stopBuiltin(FADE / 1000);   // 내장 사운드가 나고 있었다면 3.5초에 걸쳐 겹치며 사라집니다
       clearWatchdog();
-      yt.stallRetried = false;
-      const armWatchdog = () => {
+      const armWatchdog = (ms) => {
         yt.watchdog = setTimeout(() => {
           try {
             const ct = yt.player.getCurrentTime();
             const st = yt.player.getPlayerState();
-            if (ct > 0.5 || st === 3) return;   // 재생·버퍼링 중이면 기다립니다
-            if ((st === -1 || st === 2) && !yt.stallRetried) {
-              // 광고가 끈 뒤 시작하지 않으면 — 같은 곡을 새로 불러옵니다 (새 로드는 다시 시작됩니다)
+            if (ct > 0.5 || st === 3 || st === 1) return;   // 재생·버퍼링 중이면 기다립니다
+            if (!yt.stallRetried) {
+              // 시작하지 않고 서 있으면 한 번 다시 재생을 시도합니다
               yt.stallRetried = true;
-              try { yt.player.loadVideoById({ videoId: track.y, startSeconds: 0 }); } catch (e) {}
-              setTimeout(() => { try { yt.player.setVolume(0); yt.volume = 0; yt.player.playVideo(); } catch (e) {} }, 380);
-              armWatchdog();
+              try { yt.player.playVideo(); } catch (e) {}
+              armWatchdog(8000);
               return;
             }
-            yt.errors++;
-            nextTrack(true, { crossfade: false });
+            // 그래도 시작하지 않으면 — 끊김 없이 내장 사운드로 이어갑니다
+            fallbackToBuiltin('유튜브 재생이 지연되어 내장 사운드로 이어갑니다.');
           } catch (e) {}
-        }, 20000);
+        }, ms || 20000);
       };
       armWatchdog();
       try {
@@ -525,7 +536,9 @@
     yt.errors = 0;
     clearWatchdog();
     const sec = plan[activeIndex] || {};
-    startBuiltin(sectionTexture(sec));
+    // 광고 사이의 내장 사운드가 이미 나고 있으면 그 결을 그대로 이어갑니다 (무음 구간 없이)
+    if (!(audio && audio.playing && yt.playingBuiltin)) startBuiltin(sectionTexture(sec));
+    else { yt.adBuiltin = false; $('#sourceBadge').textContent = '내장 사운드'; }
     if (msg) toast(msg);
     $('#footStatus').textContent = '내장 사운드 재생 중';
   }
