@@ -7,36 +7,40 @@
 
 | 구간 | 시간 | 내용 |
 | --- | --- | --- |
-| 오프닝 | 10분 | 호흡 · 그라운딩 (Deuter, Liquid Mind, Shambhala Spa 계열) |
-| 피아노 브릿지 | 3·4·5분 선택 (기본 4분) | 이루마 「Kiss the Rain」·「River Flows in You」, 이정혁 「형을 위한 노래」 |
+| 오프닝 | 10분 | 호흡 · 그라운딩 (Deuter · Liquid Mind의 스튜디오 트랙) |
+| 피아노 브릿지 | 3·4·5분 선택 (기본 4분) | 이루마 「Kiss the Rain」·「River Flows in You」·「Wait There」·「Poem+」 |
 | 메인 플로우 | 31·30·29분 (브릿지 길이에 따라 자동 조정) | 플로우 테마 4종 |
 | 컴다운 | 10분 | 심박을 가라앉히는 피아노 · 하프 |
-| 사바아사나 | 5분 | 추천 풀 5종 + 오늘의 랜덤 추천 |
+| 사바아사나 | 5분 | 추천 풀 6종 + 오늘의 랜덤 추천 |
 | 마무리 | 1분 | 조용한 패드, 수업 후 대기 음악으로 연결 |
 
 전체 합계는 브릿지 길이와 무관하게 **60분**입니다.
 
 ## 플로우 테마
 
-- **클래식 소마토 플로우** — 뉴에이지 · 레이키 · 스파 (David Lanz, Parijat, Fiona Joy Hawkins, Lisa Swerdlow)
-- **네오클래식 피아노 플로우** — 루도비코 에이나우디, 하프 · 피아노 (relaxdaily, Kristin Hoffmann)
-- **만트라 · 보컬 힐링 플로우** — Deva Premal & Miten, Snatam Kaur, Nirinjan Kaur, Mirabai Ceiba
-- **크리스마스 · 연말 캐롤 모드** — 잔잔한 피아노 · 어쿠스틱 캐럴
+- **클래식 소마토 플로우** — 뉴에이지 · 레이키 · 스파 (David Lanz, Parijat, Fiona Joy Hawkins, Deuter)
+- **네오클래식 피아노 플로우** — 루도비코 에이나우디, 올라퓌르 아르날즈, 류이치 사카모토, 막스 리히터, Levi Patel
+- **만트라 · 보컬 힐링 플로우** — Deva Premal, Snatam Kaur, Mirabai Ceiba, Nirinjan Kaur
+- **크리스마스 · 연말 캐롤 모드** — 잔잔한 피아노 캐럴 (Rousseau, Francesco Parrino, Fiona Joy Hawkins)
 
 ## 사바아사나 추천 풀
 
 **감성곡 · 가사 있는** (소향 Wind Song, 성시경 너의 모든 순간, 이무진 비와 당신, 샘김 그 여름밤 · Your Song,
 Rachael Yamagata, Susie Suh × Robot Koch, Norah Jones, SLANDER acoustic 등) /
-**가사 없는 힐링 건반** (Levi Patel, Fiona Joy Hawkins, Ólafur Arnalds, Goldmund, Nils Frahm, Hammock, Eluvium) /
+**가사 없는 힐링 건반** (Levi Patel, Fiona Joy Hawkins, Ólafur Arnalds, Goldmund, Nils Frahm, Hammock, Eluvium, Ryuichi Sakamoto, Max Richter, Ludovico Einaudi) /
 **바디스캔 · 앰비언트** (Brian Eno, Steve Roach, Stars of the Lid) /
-싱잉볼 · 명상 / 만트라 · 보컬 / 자연의 밤 · 빗소리 / 하프 · 오르골 / 크리스마스 잔잔한 캐롤 /
+싱잉볼 · 명상 / 만트라 · 보컬 / 하프 · 오르골 / 크리스마스 잔잔한 캐럴 /
 **오늘의 랜덤 추천**(감성곡과 가사 없는 힐링곡이 번갈아 섞입니다).
 
 ## 부가 기능
 
-- **모든 전환이 3.5초 크로스페이드** — 대기 음악 → 수업 시작, 구간 자동/수동 전환, 테마·모드 전환 때
-  기존 음악이 약 3.5초에 걸쳐 줄어들고 새 음악이 0에서 3.5초 동안 천천히 올라옵니다
-  (유튜브는 S-커브 볼륨 램프, 내장 사운드는 Web Audio 램프로 이어집니다)
+- **`다른 곡` 버튼** — 지금 흐르는 음악 카드 안에 있어 수업 중 한 손으로 바로 누를 수 있습니다.
+  누르면 같은 구간의 다음 곡으로 **3.5초 페이드아웃 → 3.5초 페이드인**으로 넘어갑니다
+- **볼륨** — 기본 볼륨을 42%로 낮추고 **대기 음악은 설정 볼륨의 68%** 로 한 단계 더 은은하게 깔립니다
+  (이전 버전에서 62%로 저장된 기기는 한 번만 자동으로 낮춰 맞춥니다)
+- **모든 전환이 3.5초 크로스페이드** — 대기 음악 → 수업 시작, 구간 자동/수동 전환, 테마·모드 전환,
+  `다른 곡`, 이전·다음 구간 버튼까지 기존 음악이 약 3.5초에 걸쳐 줄어들고 새 음악이 0에서
+  3.5초 동안 천천히 올라옵니다 (유튜브는 S-커브 볼륨 램프, 내장 사운드는 Web Audio 램프)
 - **바디스캔 명상 버튼** — 사바아사나 패널과 수업 컨트롤 칩에서 켜고 끕니다. 가사·멜로디 없는
   초저자극 드론과 숨결 패드(내장) 또는 바디스캔 앰비언트 풀(유튜브)이 흐릅니다
 - **잠금 화면 · 이어폰 조작 (Media Session API)** — 화면이 꺼져도 재생·정지·곡 넘기기가 됩니다.
@@ -51,14 +55,15 @@ Rachael Yamagata, Susie Suh × Robot Koch, Norah Jones, SLANDER acoustic 등) /
 ## 음원 재생 구조
 
 1. **YouTube IFrame Player API** 로 구간별 큐를 순환 재생합니다. 큐의 모든 영상은 실제
-   임베드 재생 테스트를 통과한 ID만 수록했습니다(`tools/verify.html`).
+   IFrame 플레이어로 임베드 검사를 통과한 ID만 수록했습니다(`tools/verify5.html` · `verify6.html`).
+   1시간짜리 모음 · 저음질 비공식 업로드는 모두 걷어냈습니다.
 2. 유튜브 광고는 IFrame API로 감지·건너뛰기가 불가능합니다(플레이어가 광고 여부를
    노출하지 않습니다). 광고 없는 수업을 원하면 사운드 소스를 **내장 사운드**로 바꾸거나
    YouTube Premium 로그인 상태로 사용하세요.
 3. 영상이 임베드 제한(Error 101/150/2/5)이거나 네트워크가 끊기면, 같은 구간의
    **내장 힐링 사운드 엔진**(Web Audio API)으로 자동 전환합니다. 패드 · 펠트 피아노 ·
-   하프 · 오르골 · 싱잉볼 · 빗소리 · 파도 · 밤 자연음을 실시간 합성하므로 음원 파일 없이도
-   수업이 끊기지 않습니다.
+   하프 · 오르골 · 싱잉볼을 사인파 기반으로 실시간 합성하므로 음원 파일 없이도
+   수업이 끊기지 않습니다. (노이즈로 만들던 빗소리 · 바람 소리는 v3에서 걷어냈습니다)
 4. 설정이나 수업 화면의 **유튜브·내장** 칩으로 언제든 전환할 수 있습니다.
 
 ## 파일 구성
@@ -80,12 +85,10 @@ GitHub Pages — `main` 브랜치 루트. `https://biblia1eunsu.github.io/somato
 
 ## 검증 기록
 
-- `tools/verify.html` · `tools/verify2.html` — 기존 수록곡(1차 92 + 2차 15) 전수 IFrame 재생 검사.
-- `tools/verify3.html` — 사바아사나 보강 후보 49건을 실제 IFrame 플레이어로 재생 검사했습니다.
-  Error 101/150 이 뜬 2건(Yamagata You Won't Let Me 공식 채널 · Norah Jones Come Away With Me 공식 채널)은
-  수록에서 빠지고 같은 곡의 다른 검증된 업로드로 대신했습니다. 검사 환경 특성상 광고 뒤 본 영상이
-  자동으로 시작하지 않는 경우가 많아(앱은 내장 사운드로 끊김 없이 이어갑니다), 광고가 없는 영상은
-  전부 즉시 재생을 확인했습니다.
+- `tools/verify5.html` · `tools/verify6.html` — 최종 선곡 105곡(대체 후보 포함 108개 ID)을 실제 IFrame 플레이어로
+  임베드 검사했습니다. Error 101/150이 뜬 2건(Einaudi 「Una Mattina」 공식 영상 · Sakamoto 「Aqua」 공식 영상)은
+  같은 곡의 다른 검증된 업로드로 바꿨고, 재생이 잠시 지연된 3건은 재검에서 정상임을 확인했습니다.
+- 이전 라운드 — `tools/verify.html` · `verify2.html`(1차 92 + 2차 15곡) · `verify3.html`(사바아사나 보강 후보 49건).
 - 라이브: https://biblia1eunsu.github.io/somato-music/
 - 확인한 동작 — 수업 시작·구간 자동/수동 전환에서 3.5초 크로스페이드(기존 음악이 줄며 새 음악이 겹쳐 올라옴),
   바디스캔 명상 버튼(전용 드론 · 숨결 사운드와 배지 전환), 오늘의 랜덤 추천 믹스 대기열,

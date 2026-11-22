@@ -220,6 +220,16 @@ html[data-theme="dark"] .ico-sun{display:none}
 .wave i:nth-child(16){height:6px;animation-delay:-1.45s}
 @keyframes pulse{0%,100%{transform:scaleY(.55)}50%{transform:scaleY(1)}}
 
+.now-actions{display:flex;justify-content:flex-end;margin-top:12px}
+.skip-btn{
+  display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 17px;
+  border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  font-size:12.5px;letter-spacing:.01em;transition:transform .15s ease,border-color .2s ease,color .2s ease;
+}
+.skip-btn svg{width:15px;height:15px;color:var(--accent);flex:none}
+.skip-btn:active{transform:scale(.96)}
+.skip-btn:disabled{opacity:.45}
+
 .controls{display:flex;align-items:center;justify-content:center;gap:26px;margin-top:16px}
 .ctrl{
   width:46px;height:46px;border-radius:50%;border:1px solid var(--line);color:var(--ink-2);
@@ -420,6 +430,7 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
   .time-main span:first-child{font-size:46px}
   .now-card{margin-top:16px}
   .controls{margin-top:14px}
+  .skip-btn{height:46px;padding:0 19px;font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001s !important;transition-duration:.001s !important}
