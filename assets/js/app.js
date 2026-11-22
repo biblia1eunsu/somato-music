@@ -301,6 +301,8 @@
             yt.ready = true; yt.loading = false;
             try { yt.player.setVolume(0); yt.player.mute(); } catch (e) {}
             yt.volume = 0;
+            setTimeout(ensurePreviewYT, 900);   // 미리듣기 플레이어도 앱을 열 때 함께 준비
+            warmFirstTrack();                    // 첫 대기곱 메타데이터를 미리 불러 둡니다
             if (mode === 'class' && owner === 'builtin' && state.sourceMode !== 'builtin') {
               playSection(activeIndex, { soft: true });
             } else if (mode === 'idle' && state.ambientOn && owner === 'builtin') {
@@ -409,7 +411,7 @@
     let waited = 0;
     yt.adTimer = setInterval(() => {
       if (owner !== 'youtube' || !yt.player) { clearInterval(yt.adTimer); yt.adTimer = null; return; }
-      waited += 500;
+      waited += 150;
       let dur = 0, st = -1, vid = '', ct = 0;
       try {
         dur = yt.player.getDuration() || 0;
@@ -426,22 +428,23 @@
         setBadge('ad');
         return;
       }
-      /* 재생 중인지 — 브라우저에 따라 상태값이 -1 로 남는 경우가 있어 재생 시간으로도 봅니다 */
-      if (dur >= 100 && (st === 1 || st === 3 || ct > 0.5)) {
-        /* 본 영상이 실제로 흐르기 시작한 순간에만 소리를 냅니다 */
+      /* 재생 중인지 — 브라우저에 따라 상태값이 -1 로 남는 경우가 있어 재생 시간으로도 봅니다.
+         소리는 본 영상이 흐르기 시작한 순간에 0.6초(첫 시작) / 0.9초(전환) 만에 올라옵니다. */
+      if (st === 1 || ct > 0.2 || (dur >= 100 && st === 3)) {
         setBadge('youtube');
         try { yt.player.unMute(); } catch (e) {}
-        ytFadeTo(outVolume(), 1600);
+        ytFadeTo(outVolume(), yt.started ? 900 : 600);
+        yt.started = true;
         clearInterval(yt.adTimer); yt.adTimer = null;
         clearTimeout(yt.watchdog); yt.watchdog = null;
       } else if (waited > 120000) {
         /* 2분이 지나도 길이를 알려주지 않는 경우 — 더 기다리면 무음이 길어집니다 */
         setBadge('youtube');
         try { yt.player.unMute(); } catch (e) {}
-        ytFadeTo(outVolume(), 1200);
+        ytFadeTo(outVolume(), 800);
         clearInterval(yt.adTimer); yt.adTimer = null;
       }
-    }, 500);
+    }, 150);
   }
 
   /* 재생이 실제로 시작되지 않았을 때만 다시 시도하고, 두 번째에도 안 되면
@@ -486,13 +489,23 @@
       if (owner !== 'youtube' || !yt.player) return;
       try { yt.player.mute(); yt.player.setVolume(0); } catch (e) {}
       yt.volume = 0;
+      let same = false;
       try {
-        yt.player.loadVideoById({ videoId: track.y, startSeconds: 0 });
+        const vd = yt.player.getVideoData ? (yt.player.getVideoData() || {}) : {};
+        same = !!vd.video_id && vd.video_id === track.y;
+      } catch (e) { same = false; }
+      try {
+        if (same) {
+          /* 이미 열려 있는 곡이면 다시 불러오지 않고 바로 재생 — 광고 재요청과 로딩 지연이 없습니다 */
+          try { if ((yt.player.getCurrentTime() || 0) > 0.4) yt.player.seekTo(0, true); } catch (e) {}
+        } else {
+          yt.player.loadVideoById({ videoId: track.y, startSeconds: 0 });
+        }
+        yt.player.playVideo();       // 대기 없이 같은 제스처 안에서 바로
       } catch (e) {
         fallbackToBuiltin('유튜브를 불러오지 못해 내장 사운드로 이어갑니다.');
         return;
       }
-      yt.playTimer = setTimeout(() => { try { yt.player.playVideo(); } catch (e) {} }, 380);
       armWatchdog(14000);
       watchPlayback();
     };
@@ -734,6 +747,20 @@
   /* 대기 음악 — 고정한 곡(첫 곡)이 있으면 그 순서를 지키고 그 뒤만 섞습니다 */
   function waitList() {
     return queuedList('wait');
+  }
+
+  /* 앱을 열어 둔 사이 첫 대기곱의 메타데이터를 미리 불러 둡니다 (재생은 하지 않음).
+     '대기 음악'을 눌렀을 때 영상을 새로 불러오는 시간 없이 바로 시작되도록. */
+  function warmFirstTrack() {
+    if (!yt.player || !yt.ready) return;
+    if (owner === 'youtube' || mode !== 'idle' || state.ambientOn) return;
+    const t = waitList()[0];
+    if (!t || !t.y) return;
+    try {
+      const vd = yt.player.getVideoData ? (yt.player.getVideoData() || {}) : {};
+      if (vd.video_id === t.y) return;
+      yt.player.cueVideoById({ videoId: t.y });
+    } catch (e) {}
   }
 
   function playAmbient(resume) {
@@ -1134,10 +1161,12 @@
      그래서 미리듣기끼리, 수업 음악과 겹쳐 소리가 나는 일이 없습니다. */
   const pv = {
     player: null, ready: false, track: '', key: '', pending: '', playing: false,
-    fade: null, watchdog: null, wait: null, adTimer: null, ad: false, ramped: false,
-    nudges: 0, live: 0, vol: 0, restore: null
+    fade: null, watchdog: null, probe: null, ad: false, ramped: false,
+    nudges: 0, live: 0, vol: 0, restore: null, hold: false, startedAt: 0
   };
 
+  /* 미리듣기 플레이어는 앱을 열 때 미리 만들어 두고 첫 대기곡을 cue 해 둡니다.
+     ▶ 를 누른 순간에 플레이어를 새로 만드는 지연(iOS에서 1~3초)이 사라집니다. */
   function ensurePreviewYT() {
     if (pv.player || !window.YT || !window.YT.Player) return;
     const host = $('#ytPreviewHost');
@@ -1147,7 +1176,7 @@
     host.appendChild(div);
     try {
       pv.player = new YT.Player('ytPreviewPlayer', {
-        width: 200, height: 120,
+        width: 320, height: 180,
         playerVars: {
           autoplay: 0, controls: 0, disablekb: 1, fs: 0, rel: 0,
           modestbranding: 1, playsinline: 1, origin: location.origin
@@ -1156,10 +1185,18 @@
           onReady: () => {
             pv.ready = true;
             try { pv.player.setVolume(0); pv.player.mute(); } catch (e) {}
-            if (pv.pending) { const y = pv.pending; pv.pending = ''; playPreviewNow(y); }
+            if (pv.pending) {
+              const y = pv.pending;
+              pv.pending = '';
+              if (!pv.track) pv.track = y;
+              playPreviewNow(y);
+            } else if (!pv.track) {
+              const first = firstPreviewId();
+              if (first) { try { pv.player.cueVideoById({ videoId: first }); } catch (e) {} }
+            }
           },
           onStateChange: (e) => {
-            if (e.data === 1) { pv.playing = true; syncPreviewUI(); }
+            if (e.data === 1) markPreviewPlaying();
             if (e.data === 0) previewEnded();
           },
           onError: () => previewFailed()
@@ -1221,89 +1258,114 @@
     pv.track = y;
     pv.key = key;
     pv.playing = false;
+    pv.hold = false;
+    hidePvBox();
     ensurePreviewYT();
     syncPreviewUI();
     if (!pv.ready) {
       pv.pending = y;
-      ensureYT();
-      clearInterval(pv.wait);
-      let tries = 0;
-      pv.wait = setInterval(() => {
-        tries++;
-        if (pv.player) { clearInterval(pv.wait); pv.wait = null; return; }
-        if (window.YT && window.YT.Player) ensurePreviewYT();
-        if (tries > 20) { clearInterval(pv.wait); pv.wait = null; }
-      }, 500);
+      if (!window.YT || !window.YT.Player) ensureYT();
       return;
     }
     playPreviewNow(y);
   }
 
+  /* 누른 그 순간(같은 제스처 안)에 loadVideoById + playVideo 를 부르고,
+     재생 증거가 잡히는 즉시 '미리듣기'로 넘깁니다. 이미 열려 있는 영상은
+     다시 불러오지 않으므로 광고를 새로 요청하지 않고 곧바로 이어집니다. */
   function playPreviewNow(y) {
     if (!pv.player || !pv.ready) { pv.pending = y; return; }
     clearTimeout(pv.watchdog);
     clearInterval(pv.fade);
-    try { pv.player.unMute(); pv.player.setVolume(0); } catch (e) {}
-    pv.vol = 0;
-    try {
-      pv.player.loadVideoById({ videoId: y, startSeconds: 0 });
-    } catch (e) { previewFailed(); return; }
-    setTimeout(() => { try { pv.player.playVideo(); } catch (e) {} }, 260);
-    watchPreviewAd();
-    pv.watchdog = setTimeout(() => {
-      if (pv.playing || pv.ad) return;
-      let st = -1, ct = 0, dur = 0;
-      try {
-        st = pv.player.getPlayerState();
-        ct = pv.player.getCurrentTime() || 0;
-        dur = pv.player.getDuration() || 0;
-      } catch (e) { return; }
-      if (st === 1 || ct > 1 || dur > 0) { pv.playing = true; syncPreviewUI(); return; }
-      previewFailed();
-    }, 30000);
-  }
-
-  /* 미리듣기는 광고부터 조용하게 — 본 음악이 확인되기 전까지는 무음으로 두고
-     실제 곡이 시작된 순간에만 볼륨을 올립니다 (수업 재생과 같은 규칙).
-     광고를 지나 화면이 멈춰 있으면 재생을 한 번씩 밀어 줍니다. */
-  function watchPreviewAd() {
-    clearInterval(pv.adTimer);
+    clearInterval(pv.probe);
     pv.ad = false;
     pv.ramped = false;
     pv.nudges = 0;
     pv.live = 0;
-    pv.adTimer = setInterval(() => {
-      if (!pv.player || !pv.track) { clearInterval(pv.adTimer); pv.adTimer = null; return; }
-      let dur = 0, vid = '', st = -1;
+    pv.hold = false;
+    pv.startedAt = Date.now();
+    pv.vol = 0;
+    let same = false;
+    try {
+      const vd = pv.player.getVideoData ? (pv.player.getVideoData() || {}) : {};
+      same = !!vd.video_id && vd.video_id === y;
+    } catch (e) { same = false; }
+    try { pv.player.setVolume(0); pv.player.mute(); } catch (e) {}
+    try {
+      if (same) {
+        try { if ((pv.player.getCurrentTime() || 0) > 0.4) pv.player.seekTo(0, true); } catch (e) {}
+      } else {
+        pv.player.loadVideoById({ videoId: y, startSeconds: 0 });
+      }
+      pv.player.playVideo();          // 제스처 안에서 바로 — iOS 자동재생 차단 회피
+    } catch (e) { previewFailed(); return; }
+    startPreviewProbe();
+    pv.watchdog = setTimeout(() => {
+      if (pv.playing) return;
+      let st = -1, ct = 0;
+      try { st = pv.player.getPlayerState(); ct = pv.player.getCurrentTime() || 0; } catch (e) { return; }
+      if (st === 1 || ct > 0.2) { markPreviewPlaying(); return; }
+      previewFailed();
+    }, 25000);
+  }
+
+  function markPreviewPlaying() {
+    if (pv.playing) return;
+    pv.playing = true;
+    pv.hold = false;
+    hidePvBox();
+    syncPreviewUI();
+  }
+
+  function showPvBox() {
+    const h = $('#ytPreviewHost');
+    if (h) h.classList.add('is-vis');
+  }
+  function hidePvBox() {
+    const h = $('#ytPreviewHost');
+    if (h) h.classList.remove('is-vis');
+  }
+  function firstPreviewId() {
+    const list = waitList();
+    return list.length ? (list[0].y || '') : '';
+  }
+
+  /* 150ms마다 재생 증거를 확인합니다. 1.2초가 지나도 소리가 시작되지 않으면
+     광고이거나 iOS가 자동재생을 막은 경우이므로, 유튜브가 띄운 '건너뛰기'를
+     직접 누를 수 있도록 작은 플레이어를 화면에 보여 줍니다. */
+  function startPreviewProbe() {
+    clearInterval(pv.probe);
+    pv.probe = setInterval(() => {
+      if (!pv.player || !pv.track) { clearInterval(pv.probe); pv.probe = null; return; }
+      let st = -1, ct = 0;
       try {
-        dur = pv.player.getDuration() || 0;
         st = pv.player.getPlayerState();
-        const vd = pv.player.getVideoData ? (pv.player.getVideoData() || {}) : {};
-        vid = vd.video_id || '';
+        ct = pv.player.getCurrentTime() || 0;
       } catch (e) { return; }
-      const mine = !!vid && vid === pv.track;
-      const real = mine && (dur >= 100 || dur > 20);
-      if (!real) {
-        if (!pv.ad && (dur > 0 || (!!vid && !mine))) { pv.ad = true; syncPreviewUI(); }
+      const waited = Date.now() - pv.startedAt;
+      if (st === 1 || ct > 0.2) {
+        markPreviewPlaying();
+        if (!pv.ramped) { pv.ramped = true; pvFadeTo(state.volume, 400); }
+        clearInterval(pv.probe);
+        pv.probe = null;
         return;
       }
-      if (pv.ad) { pv.ad = false; syncPreviewUI(); }
-      if (!pv.ramped) { pv.ramped = true; pvFadeTo(state.volume, 900); }
-      if (st === 1) {
-        pv.playing = true;
-        pv.live++;
-        if (pv.live >= 2) { clearInterval(pv.adTimer); pv.adTimer = null; syncPreviewUI(); }
-        return;
+      if (waited > 1200 && !pv.hold) {
+        pv.hold = true;
+        showPvBox();
+        syncPreviewUI();
       }
-      if ((st === -1 || st === 2 || st === 5) && pv.nudges < 5) {
+      if (waited > 900 && (st === -1 || st === 2 || st === 5) && pv.nudges < 3) {
         pv.nudges++;
         try { pv.player.playVideo(); } catch (e) {}
       }
-    }, 500);
+      if (waited > 25000) { clearInterval(pv.probe); pv.probe = null; previewFailed(); }
+    }, 150);
   }
 
   function pvFadeTo(target, ms) {
     if (!pv.player || !pv.player.setVolume) return;
+    try { if (target > 0) pv.player.unMute(); } catch (e) {}
     clearInterval(pv.fade);
     const from = pv.vol || 0;
     const steps = Math.max(1, Math.round((ms || 600) / 50));
@@ -1320,11 +1382,15 @@
   function stopPreview(restore) {
     clearTimeout(pv.watchdog);
     clearInterval(pv.fade);
-    clearInterval(pv.adTimer);
-    pv.adTimer = null; pv.ad = false;
+    clearInterval(pv.probe);
+    pv.probe = null;
+    pv.ad = false;
+    pv.hold = false;
     pv.playing = false; pv.track = ''; pv.pending = '';
+    hidePvBox();
     if (pv.player) {
-      try { pv.player.setVolume(0); pv.player.mute(); pv.player.stopVideo(); } catch (e) {}
+      /* 정지가 아니라 일시정지 — 같은 곡을 다시 누르면 광고 없이 바로 이어집니다 */
+      try { pv.player.setVolume(0); pv.player.mute(); pv.player.pauseVideo(); } catch (e) {}
     }
     pv.vol = 0;
     syncPreviewUI();
@@ -1334,9 +1400,12 @@
   function previewEnded() {
     clearTimeout(pv.watchdog);
     clearInterval(pv.fade);
-    clearInterval(pv.adTimer);
-    pv.adTimer = null; pv.ad = false;
+    clearInterval(pv.probe);
+    pv.probe = null;
+    pv.ad = false;
+    pv.hold = false;
     pv.playing = false; pv.track = ''; pv.pending = '';
+    hidePvBox();
     syncPreviewUI();
     resumeAfterPreview();
   }
@@ -1344,10 +1413,13 @@
   function previewFailed() {
     clearTimeout(pv.watchdog);
     clearInterval(pv.fade);
-    clearInterval(pv.adTimer);
-    pv.adTimer = null; pv.ad = false;
+    clearInterval(pv.probe);
+    pv.probe = null;
+    pv.ad = false;
+    pv.hold = false;
     pv.playing = false; pv.track = ''; pv.pending = '';
-    if (pv.player) { try { pv.player.stopVideo(); } catch (e) {} }
+    hidePvBox();
+    if (pv.player) { try { pv.player.pauseVideo(); } catch (e) {} }
     syncPreviewUI();
     toast('이 곡은 여기서 미리듣기가 되지 않아요. ✕ 로 빼거나 다른 곡을 들어보세요.');
     resumeAfterPreview();
@@ -1474,7 +1546,8 @@
       if (pv.track) {
         const t = rawTracks(pv.key).filter((x) => x.y === pv.track)[0] || {};
         $('#plNowTitle').textContent =
-          (pv.ad ? '광고 · 잠시 무음 · ' : (pv.playing ? '미리듣기 · ' : '준비 중 · ')) + (t.t || '');
+          (pv.hold ? '광고 · 건너뛰기를 눌러 주세요 · '
+            : (pv.playing ? '미리듣기 · ' : '여는 중 · ')) + (t.t || '');
       }
     }
   }

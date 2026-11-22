@@ -431,6 +431,15 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
 
 /* 유튜브 숨김 호스트 */
 #ytHost,#ytPreviewHost{position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;overflow:hidden;opacity:0;pointer-events:none}
+#ytPreviewHost>div,#ytPreviewHost iframe{width:100%!important;height:100%!important;border:0}
+/* 미리듣기가 1.2초 안에 시작되지 않으면(광고·자동재생 차단) 유튜브 화면을 작게 띄워
+   사용자가 광고의 '건너뛰기'·재생 버튼을 직접 누를 수 있게 합니다 */
+#ytPreviewHost.is-vis{
+  left:50%;top:auto;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 72px);
+  width:min(320px,calc(100% - 64px));height:auto;aspect-ratio:16/9;
+  opacity:1;pointer-events:auto;border-radius:12px;overflow:hidden;background:#000;
+  box-shadow:var(--shadow);z-index:76;
+}
 
 /* ── 선곡 관리 한 페이지 ─────────────────────────── */
 .playlist{

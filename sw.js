@@ -1,6 +1,6 @@
 /* 소마토센서리 요가 클래스 플레이어 — 오프라인 앱 셸
    버전을 올릴 때 아래 CACHE 이름과 index.html 의 ?v= 값을 함께 바꿉니다. */
-const VERSION = 'v27';
+const VERSION = 'v28';
 const REV = 'a';                       // 같은 버전 안에서 파일을 고쳤을 때 캐시를 새로 받습니다
 const CACHE = 'somato-music-' + VERSION + REV;
 const ASSETS = [
