@@ -106,11 +106,24 @@
 
     this.mix.connect(dry).connect(soft);
     this.mix.connect(reverb).connect(wet).connect(soft);
-    soft.connect(comp).connect(master).connect(ctx.destination);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    soft.connect(comp).connect(master).connect(analyser).connect(ctx.destination);
+    this.analyser = analyser;
 
     this.noise = this._noiseBuffer(3);
     this.ready = true;
     return ctx;
+  };
+
+  /* 실제로 소리가 나오고 있는지 확인하는 레벨 미터 (0~1) */
+  Engine.prototype.level = function () {
+    if (!this.analyser) return 0;
+    const buf = new Float32Array(this.analyser.fftSize);
+    this.analyser.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+    return Math.sqrt(sum / buf.length);
   };
 
   Engine.prototype._impulse = function (seconds, decay) {
