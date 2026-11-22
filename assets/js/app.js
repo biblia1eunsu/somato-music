@@ -247,42 +247,51 @@
 
   function clearWatchdog() { clearTimeout(yt.watchdog); yt.watchdog = null; }
 
-  /* 광고가 나오면 음소거한 채 내장 사운드로 메우고, 본 영상이 시작되면 다시 음악으로 */
+  /* 광고가 나오면 음소거한 채 내장 사운드로 메우고, 본 영상이 시작되면 다시 음악으로.
+     유튜브 IFrame API는 광고 여부를 직접 알려주지 않아, 로드 직후의 재생 길이로 판별합니다.
+     (광고는 60초 이하, 수록곡은 모두 3분 이상) */
+  function startAdBed() {
+    const sec = plan[activeIndex] || {};
+    const eng = ensureAudio();
+    yt.playingBuiltin = true;
+    eng.start(sec.texture || 'waiting', {});
+    $('#sourceBadge').textContent = '광고 · 내장 사운드';
+    $('#sourceBadge').classList.add('is-builtin');
+  }
+  function stopAdBed() {
+    if (audio && audio.playing) audio.stop(1.4);
+    yt.playingBuiltin = false;
+    yt.adBuiltin = false;
+    $('#sourceBadge').textContent = 'YouTube';
+    $('#sourceBadge').classList.remove('is-builtin');
+  }
+
   function watchAd() {
     clearInterval(yt.adTimer);
-    yt.adActive = false;
+    yt.adBuiltin = false;
     let waited = 0;
     yt.adTimer = setInterval(() => {
       waited += 500;
-      let id = '', st = -1;
+      let dur = 0, st = -1;
       try {
-        const vd = yt.player.getVideoData();
-        id = (vd && vd.video_id) || '';
+        dur = yt.player.getDuration();
         st = yt.player.getPlayerState();
       } catch (e) {}
-      const isAd = !!id && id !== yt.expected;
+      const isAd = dur > 0 && dur < 100;
 
       if (isAd) {
         try { yt.player.setVolume(0); } catch (e) {}
-        if (!yt.adBuiltin) {
-          yt.adBuiltin = true;
-          const sec = plan[activeIndex] || {};
-          const eng = ensureAudio();
-          yt.playingBuiltin = true;
-          eng.start(sec.texture || 'waiting', {});
-          $('#sourceBadge').textContent = '광고 · 내장 사운드';
-          $('#sourceBadge').classList.add('is-builtin');
-        }
-      } else if (yt.adBuiltin && id === yt.expected && (st === 1 || st === 3)) {
-        yt.adBuiltin = false;
-        if (audio && audio.playing) audio.stop(1.4);
-        yt.playingBuiltin = false;
+        if (!yt.adBuiltin) { yt.adBuiltin = true; startAdBed(); }
+      } else if (dur >= 100) {
+        if (yt.adBuiltin) stopAdBed();
         ytFadeTo(state.volume, 1600);
-        $('#sourceBadge').textContent = 'YouTube';
-        $('#sourceBadge').classList.remove('is-builtin');
         clearInterval(yt.adTimer);
       }
-      if (waited > 150000) { clearInterval(yt.adTimer); yt.adBuiltin = false; }
+      if (waited > 95000) {
+        if (yt.adBuiltin) stopAdBed();
+        ytFadeTo(state.volume, 1500);
+        clearInterval(yt.adTimer);
+      }
     }, 500);
   }
 
