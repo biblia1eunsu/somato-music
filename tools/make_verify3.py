@@ -31,7 +31,7 @@ td,th{border-bottom:1px solid #262626;padding:4px 6px;text-align:left;vertical-a
 <div id="player"></div>
 <script>
 const ITEMS = __ITEMS__;
-const TIMEOUT = 40000;
+const TIMEOUT = 20000;
 window.__results = [];
 window.__done = false;
 let player = null, idx = 0, timer = null, startAt = 0, retryQueue = [], retriesLeft = [];
@@ -78,7 +78,9 @@ function next(i){
     try { st = player.getPlayerState(); t = player.getCurrentTime(); dur = player.getDuration(); data = player.getVideoData && player.getVideoData(); } catch(e){}
     const isAd = dur > 0 && dur < 100;
     if (isAd) show(i, i, '광고 대기…', 'ad');
-    if(st === 1 && t > 0.5 && !isAd) finish(true, 'playing '+t.toFixed(1)+'s');
+    // 광고가 나온다는 것은 임베드 재생이 허용된 영상이라는 뜻입니다 (101/150 은 광고도 못 띄웁니다)
+    if (isAd && ms > 1500) finish(true, 'ad→playable');
+    else if(st === 1 && t > 0.5 && !isAd) finish(true, 'playing '+t.toFixed(1)+'s');
     else if(ms > TIMEOUT) finish(false, 'timeout state='+st+' dur='+Math.round(dur), isAd);
   }, 250);
 }
