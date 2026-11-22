@@ -149,7 +149,7 @@
     /* 타종은 배경 음악 위에서도 들려야 하므로 별도 버스
        (음악 게이트를 지나지 않습니다 → 유튜브 재생 중에도 사용자가 켠 타종만 울립니다) */
     this.fx = ctx.createGain();
-    this.fx.gain.value = 0.0001;
+    this.fx.gain.value = 1;            // 타종 통로 — 음악 게이트와 분리되어 늘 열려 있습니다
     this.fxGain = ctx.createGain();
     this.fxGain.gain.value = this.volume * 0.5;
     this.fx.connect(this.fxGain);
@@ -289,10 +289,6 @@
     try {
       this.master.gain.cancelScheduledValues(t);
       this.master.gain.setValueAtTime(0, t);
-    } catch (e) {}
-    try {
-      this.fx.gain.cancelScheduledValues(t);
-      this.fx.gain.setValueAtTime(0.0001, t);
     } catch (e) {}
     this.decks.forEach((d) => d.kill(t));
   };
