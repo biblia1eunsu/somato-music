@@ -190,10 +190,20 @@
   }
 
   /* ── 재생 엔진 ──────────────────────────────── */
+  /* 소리의 주인은 언제나 하나입니다.
+       owner === 'youtube'  → 내장 사운드 두 덱은 즉시 완전 정지(gain 0 + stop)
+       owner === 'builtin'  → 유튜브는 mute() + stopVideo()
+     볼륨을 올리는 모든 길은 owner === 'youtube' 일 때만 열립니다.
+     그래서 늦게 도착한 타이머·콜백이 소리를 겹치게 만들 수 없습니다. */
+  let owner = 'none';            // 'none' | 'youtube' | 'builtin'
+
   const yt = {
     apiReady: false, player: null, ready: false, loading: false,
-    queue: [], qi: 0, errors: 0, playingBuiltin: false, currentKey: '',
-    volume: 62, fadeTimer: null, watchdog: null, started: false
+    queue: [], qi: 0, errors: 0, currentKey: '', expected: '',
+    volume: 0,                    // 유튜브 플레이어가 지금 내는 볼륨(0~100)
+    fadeTimer: null, adTimer: null, watchdog: null,
+    transitionTimer: null, stopTimer: null, playTimer: null,
+    stallRetried: false, started: false
   };
 
   function ensureAudio() {
@@ -210,7 +220,7 @@
   }
   function applyVolume(fadeMs) {
     const v = outVolume();
-    if (yt.player && !yt.playingBuiltin) ytFadeTo(v, fadeMs || 900);
+    if (owner === 'youtube') ytFadeTo(v, fadeMs || 900);
     if (audio) audio.setVolume(v / 100);
   }
 
@@ -241,18 +251,20 @@
         events: {
           onReady: () => {
             yt.ready = true; yt.loading = false;
-            yt.player.setVolume(0);
-            if (mode === 'class' && yt.playingBuiltin && state.sourceMode !== 'builtin') {
+            try { yt.player.setVolume(0); yt.player.mute(); } catch (e) {}
+            yt.volume = 0;
+            if (mode === 'class' && owner === 'builtin' && state.sourceMode !== 'builtin') {
               playSection(activeIndex, { soft: true });
-            } else if (mode === 'idle' && yt.playingBuiltin && state.ambientOn) {
+            } else if (mode === 'idle' && state.ambientOn && owner === 'builtin') {
               playAmbient(true);
             }
           },
           onStateChange: (e) => {
-            if (e.data === 1) { yt.errors = 0; clearWatchdog(); }
-            if (e.data === 0) nextTrack(true, { crossfade: false });
+            if (e.data === 1) yt.errors = 0;
+            if (e.data === 0 && owner === 'youtube') nextTrack(true, { crossfade: false });
           },
           onError: (e) => {
+            if (owner !== 'youtube') return;      // 내장 사운드가 주인일 때는 무시
             const code = e.data;
             if (code === 2 || code === 5 || code === 100 || code === 101 || code === 150) {
               yt.errors++;
@@ -269,135 +281,168 @@
     } catch (e) { yt.loading = false; }
   }
 
+  function clearYTTimers() {
+    clearInterval(yt.fadeTimer); yt.fadeTimer = null;
+    clearInterval(yt.adTimer); yt.adTimer = null;
+    clearTimeout(yt.watchdog); yt.watchdog = null;
+    clearTimeout(yt.transitionTimer); yt.transitionTimer = null;
+    clearTimeout(yt.stopTimer); yt.stopTimer = null;
+    clearTimeout(yt.playTimer); yt.playTimer = null;
+  }
+
+  /* 유튜브 볼륨 램프 — 0으로 내리는 것만 언제나 허용하고,
+     올리는 것은 유튜브가 소리의 주인일 때만 허용합니다. */
   function ytFadeTo(target, ms) {
     if (!yt.player || !yt.player.setVolume) return;
+    if (target > 0 && owner !== 'youtube') target = 0;
+    if (target > 0) { try { yt.player.unMute(); } catch (e) {} }
     clearInterval(yt.fadeTimer);
     const from = yt.volume;
     const steps = Math.max(1, Math.round((ms || FADE) / 60));
     let i = 0;
-    // S-커브: 처음과 끝을 부드럽게
     yt.fadeTimer = setInterval(() => {
       i++;
       const s = i / steps;
-      const e = s * s * (3 - 2 * s);
+      const e = s * s * (3 - 2 * s);       // S-커브
       const v = from + (target - from) * e;
       yt.volume = v;
-      try { yt.player.setVolume(clamp(v, 0, 100)); } catch (e) {}
-      if (i >= steps) clearInterval(yt.fadeTimer);
+      try { yt.player.setVolume(clamp(v, 0, 100)); } catch (e2) {}
+      if (i >= steps) { clearInterval(yt.fadeTimer); yt.fadeTimer = null; }
     }, 60);
   }
 
-  function clearWatchdog() { clearTimeout(yt.watchdog); yt.watchdog = null; }
-
-  /* 광고가 나오면 음소거한 채 내장 사운드로 메우고, 본 영상이 시작되면 다시 음악으로.
-     유튜브 IFrame API는 광고 여부를 직접 알려주지 않아, 로드 직후의 재생 길이로 판별합니다.
-     (광고는 60초 이하, 수록곡은 모두 3분 이상) */
-  function startAdBed() {
-    const sec = plan[activeIndex] || {};
-    const eng = ensureAudio();
-    yt.playingBuiltin = true;
-    eng.start(sectionTexture(sec), {});
-    $('#sourceBadge').textContent = '광고 · 내장 사운드';
-    $('#sourceBadge').classList.add('is-builtin');
-  }
-  function stopAdBed() {
-    if (audio && audio.playing) audio.stop(1.4);
-    yt.playingBuiltin = false;
-    yt.adBuiltin = false;
-    $('#sourceBadge').textContent = 'YouTube';
-    $('#sourceBadge').classList.remove('is-builtin');
+  /* 유튜브를 완전히 무음으로: 볼륨 0 + 음소거 + 정지 */
+  function silenceYT() {
+    yt.volume = 0;
+    if (!yt.player) return;
+    try { yt.player.setVolume(0); } catch (e) {}
+    try { yt.player.mute(); } catch (e) {}
+    try { yt.player.stopVideo(); } catch (e) {}
   }
 
-  function watchAd() {
+  /* 내장 사운드 두 덱 즉시 완전 정지 */
+  function stopBuiltinHard() {
+    if (audio) audio.hardStop();
+  }
+
+  /* ── 소리의 주인 바꾸기 ─────────────────────── */
+  function takeYT() {
+    if (owner === 'youtube') return;
+    stopBuiltinHard();          // 유튜브가 소리를 낼 때 내장 사운드는 0
+    owner = 'youtube';
+  }
+
+  function takeBuiltin() {
+    clearYTTimers();
+    silenceYT();                // 내장이 소리를 낼 때 유튜브는 mute + stop
+    if (owner === 'builtin') return;   // 내장끼리는 3.5초 크로스페이드로 이어집니다
+    stopBuiltinHard();
+    owner = 'builtin';
+  }
+
+  function setBadge(kind) {
+    const b = $('#sourceBadge');
+    if (!b) return;
+    const builtin = kind === 'builtin' || kind === 'builtin-bodyscan';
+    b.textContent =
+      kind === 'ad' ? '광고 · 잠시 무음' :
+      kind === 'builtin-bodyscan' ? '내장 사운드 · 바디스캔' :
+      builtin ? '내장 사운드' : 'YouTube';
+    b.classList.toggle('is-builtin', builtin);
+  }
+
+  /* ── 유튜브 감시 ──────────────────────────────
+     광고 여부는 IFrame API가 알려주지 않습니다. 재생 길이(광고 ≤ 100초,
+     수록곡 ≥ 3분)와 재생 중인 영상 ID로 판별합니다.
+     광고 구간에는 어떤 소리도 내지 않습니다 — 내장 사운드도 켜지 않습니다.
+     (v23의 '광고 후 20초 → 내장 사운드' 규칙은 여기서 없앴습니다) */
+  function watchPlayback() {
     clearInterval(yt.adTimer);
-    yt.adBuiltin = false;
     let waited = 0;
     yt.adTimer = setInterval(() => {
+      if (owner !== 'youtube' || !yt.player) { clearInterval(yt.adTimer); yt.adTimer = null; return; }
       waited += 500;
-      let dur = 0, st = -1;
+      let dur = 0, st = -1, vid = '';
       try {
-        dur = yt.player.getDuration();
+        dur = yt.player.getDuration() || 0;
         st = yt.player.getPlayerState();
-      } catch (e) {}
-      const isAd = dur > 0 && dur < 100;
+        const vd = yt.player.getVideoData ? (yt.player.getVideoData() || {}) : {};
+        vid = vd.video_id || '';
+      } catch (e) { return; }
 
+      const isAd = (dur > 0 && dur < 100) || (!!vid && !!yt.expected && vid !== yt.expected);
       if (isAd) {
-        try { yt.player.setVolume(0); } catch (e) {}
-        if (!yt.adBuiltin) { yt.adBuiltin = true; startAdBed(); }
-      } else if (dur >= 100) {
-        // 본 영상 구간 — 실제로 재생이 시작됐을 때만 내장 사운드를 물립니다
-        if (st === 1 || st === 3 || st === 2) {
-          if (st === 2 || st === -1) { try { yt.player.playVideo(); } catch (e) {} }
-          if (st === 1 || st === 3) {
-            if (yt.adBuiltin) stopAdBed();
-            ytFadeTo(outVolume(), 1600);
-            clearInterval(yt.adTimer);
-          }
-        }
-        // 광고가 끈 뒤 본 영상이 20초 넘게 시작하지 않으면 내장 사운드로 이 구간을 계속합니다
-        if (waited > 20000 && yt.adTimer) {
-          clearInterval(yt.adTimer);
-          yt.adBuiltin = false;
-          try { yt.player.pauseVideo(); } catch (e) {}
-          fallbackToBuiltin('유튜브 재생이 지연되어 내장 사운드로 이어갑니다.');
-        }
+        try { yt.player.setVolume(0); yt.player.mute(); } catch (e) {}
+        yt.volume = 0;
+        setBadge('ad');
+        return;
       }
-      if (waited > 95000 && yt.adTimer) {
-        if (yt.adBuiltin) stopAdBed();
-        ytFadeTo(outVolume(), 1500);
-        clearInterval(yt.adTimer);
+      if (dur >= 100 && (st === 1 || st === 3)) {
+        /* 본 영상이 실제로 흐르기 시작한 순간에만 소리를 냅니다 */
+        setBadge('youtube');
+        try { yt.player.unMute(); } catch (e) {}
+        ytFadeTo(outVolume(), 1600);
+        clearInterval(yt.adTimer); yt.adTimer = null;
+        clearTimeout(yt.watchdog); yt.watchdog = null;
+      } else if (waited > 120000) {
+        /* 2분이 지나도 길이를 알려주지 않는 경우 — 더 기다리면 무음이 길어집니다 */
+        setBadge('youtube');
+        try { yt.player.unMute(); } catch (e) {}
+        ytFadeTo(outVolume(), 1200);
+        clearInterval(yt.adTimer); yt.adTimer = null;
       }
     }, 500);
+  }
+
+  /* 재생이 실제로 시작되지 않았을 때만 다시 시도하고, 두 번째에도 안 되면
+     유튜브를 완전히 멈춘 뒤 내장 사운드로 넘어갑니다. */
+  function armWatchdog(ms) {
+    clearTimeout(yt.watchdog);
+    yt.watchdog = setTimeout(() => {
+      yt.watchdog = null;
+      if (owner !== 'youtube' || !yt.player) return;
+      let st = -1;
+      try { st = yt.player.getPlayerState(); } catch (e) { return; }
+      if (st === 1 || st === 3) return;         // 재생·버퍼링 중이면 기다립니다 (광고 포함)
+      if (!yt.stallRetried) {
+        yt.stallRetried = true;
+        try { yt.player.playVideo(); } catch (e) {}
+        armWatchdog(10000);
+        return;
+      }
+      fallbackToBuiltin('유튜브 재생이 지연되어 내장 사운드로 이어갑니다.');
+    }, ms || 14000);
   }
 
   function ytPlayTrack(track, opts) {
     opts = opts || {};
     if (!track || !track.y || !yt.player || !yt.ready) return false;
+
+    takeYT();                 // 내장 사운드 두 덱 즉시 완전 정지
+    clearYTTimers();          // 이전 감시 · 예약 전환 · 정지 예약을 모두 취소
     yt.expected = track.y;
+    yt.stallRetried = false;
     renderNow(track);
-    $('#sourceBadge').textContent = 'YouTube';
-    $('#sourceBadge').classList.remove('is-builtin');
+    setBadge('youtube');
     $('#nowCard').classList.add('is-playing');
 
-    /* 전환 중이던 예약이 있으면 덮어쓰지 않도록 정리 */
-    clearTimeout(yt.transitionTimer);
-
     const doLoad = () => {
-      yt.playingBuiltin = false;
-      yt.adBuiltin = false;
-      stopBuiltin(FADE / 1000);   // 내장 사운드가 나고 있었다면 3.5초에 걸쳐 겹치며 사라집니다
-      clearWatchdog();
-      const armWatchdog = (ms) => {
-        yt.watchdog = setTimeout(() => {
-          try {
-            const ct = yt.player.getCurrentTime();
-            const st = yt.player.getPlayerState();
-            if (ct > 0.5 || st === 3 || st === 1) return;   // 재생·버퍼링 중이면 기다립니다
-            if (!yt.stallRetried) {
-              // 시작하지 않고 서 있으면 한 번 다시 재생을 시도합니다
-              yt.stallRetried = true;
-              try { yt.player.playVideo(); } catch (e) {}
-              armWatchdog(8000);
-              return;
-            }
-            // 그래도 시작하지 않으면 — 끊김 없이 내장 사운드로 이어갑니다
-            fallbackToBuiltin('유튜브 재생이 지연되어 내장 사운드로 이어갑니다.');
-          } catch (e) {}
-        }, ms || 20000);
-      };
-      armWatchdog();
+      if (owner !== 'youtube' || !yt.player) return;
+      try { yt.player.mute(); yt.player.setVolume(0); } catch (e) {}
+      yt.volume = 0;
       try {
         yt.player.loadVideoById({ videoId: track.y, startSeconds: 0 });
-        setTimeout(() => {
-          try { yt.player.setVolume(0); yt.volume = 0; yt.player.playVideo(); } catch (e) {}
-        }, 380);
-      } catch (e) { return; }
-      watchAd();
-      ytFadeTo(outVolume(), opts.crossfade === false ? 900 : FADE);
+      } catch (e) {
+        fallbackToBuiltin('유튜브를 불러오지 못해 내장 사운드로 이어갑니다.');
+        return;
+      }
+      yt.playTimer = setTimeout(() => { try { yt.player.playVideo(); } catch (e) {} }, 380);
+      armWatchdog(14000);
+      watchPlayback();
     };
 
-    /* 지금 소리가 나고 있으면 먼저 3.5초에 걸쳐 줄인 뒤 새 곡이 0에서 3.5초 동안 올라옵니다 */
-    if (opts.crossfade !== false && ytAudible()) {
+    /* 지금 소리가 나고 있으면 먼저 3.5초에 걸쳐 줄인 뒤 새 곡이 0에서 올라옵니다 */
+    if (opts.crossfade !== false && yt.volume > 2) {
       ytFadeTo(0, opts.fadeOut || FADE);
       yt.transitionTimer = setTimeout(doLoad, (opts.fadeOut || FADE) + 150);
     } else {
@@ -418,48 +463,37 @@
 
   /* 지금 유튜브에서 소리가 나고 있는지 — 크로스페이드가 필요한지 판단할 때 씁니다 */
   function ytAudible() {
-    return !yt.playingBuiltin && !yt.adBuiltin && yt.volume > 2 && !!yt.player;
+    return owner === 'youtube' && yt.volume > 2 && !!yt.player;
   }
 
   function startBuiltin(texture, label, fadeMs) {
+    takeBuiltin();                 // 유튜브는 mute + stopVideo, 내장 덱은 정리
     const eng = ensureAudio();
     ensureKeepAlive();
-    yt.playingBuiltin = true;
-    if (yt.player && ytAudible()) {
-      ytFadeTo(0, fadeMs || FADE);
-      setTimeout(() => { try { yt.player.pauseVideo(); } catch (e) {} }, (fadeMs || FADE) + 250);
-    } else if (yt.player) {
-      ytFadeTo(0, 500);
-      setTimeout(() => { try { yt.player.pauseVideo(); } catch (e) {} }, 700);
-    }
     eng.start(texture, { firstBowl: false, fadeMs: fadeMs || FADE });
-    $('#sourceBadge').textContent = texture === 'bodyscan' ? '내장 사운드 · 바디스캔' : '내장 사운드';
-    $('#sourceBadge').classList.add('is-builtin');
+    setBadge(texture === 'bodyscan' ? 'builtin-bodyscan' : 'builtin');
     $('#nowCard').classList.add('is-playing');
     renderBuiltin(label || builtinLabel(texture));
   }
-  function stopBuiltin(sec) {
-    if (audio && audio.playing) audio.stop(sec == null ? 1.2 : sec);
-    yt.playingBuiltin = false;
-  }
+
   function builtinLabel(texture) {
     const map = {
-      waiting: ['대기 음악', '웜 앰비언트 패드'],
-      opening: ['그라운딩 패드', '낮은 호흡 · 스파 톤'],
+      waiting: ['대기 음악', '맑은 하프 아르페지오'],
+      opening: ['그라운딩 피아노', '느린 펠트 건반'],
       bridge: ['펠트 피아노', '느린 아르페지오'],
-      'flow-classic': ['뉴에이지 피아노', '레이키 · 스파 결'],
-      'flow-neo': ['네오클래식 피아노', '맑은 하프 결'],
-      'flow-mantra': ['보컬 힐링 패드', '낮은 아- 톤 · 만트라 결'],
+      'flow-classic': ['뉴에이지 하프', '잔잔한 아르페지오'],
+      'flow-neo': ['네오클래식 피아노', '맑은 건반'],
+      'flow-mantra': ['낮은 하프', '느린 만트라 결'],
       'flow-xmas': ['오르골 캐럴', '잔잔한 연말 결'],
       cooldown: ['이완 하프', '느린 아르페지오'],
-      closing: ['마무리 패드', '아주 낮은 호흡'],
-      bodyscan: ['바디스캔 명상', '가사 없는 낮은 드론 · 숨결'],
-      'sava-song': ['감성 사바아사나 패드', '잔잔한 결의 내장 사운드'],
+      closing: ['마무리 오르골', '드문드문 울리는 음'],
+      bodyscan: ['바디스캔 명상', '아주 낮은 울림 · 숨결'],
+      'sava-song': ['감성 사바아사나 하프', '잔잔한 결의 내장 사운드'],
       'sava-piano': ['사바아사나 피아노', '느리고 낮은 건반'],
       'sava-bowl': ['싱잉볼 사운드스케이프', '주기적인 타종'],
-      'sava-vocal': ['보컬 힐링 패드', '아- 코러스'],
-      'sava-nature-rain': ['빗소리 · 낮은 패드', '창밖의 비'],
-      'sava-nature-night': ['자연의 밤', '풀벌레 · 바람'],
+      'sava-vocal': ['낮은 하프 힐링', '느린 아르페지오'],
+      'sava-nature-rain': ['조용한 하프', '낮은 결'],
+      'sava-nature-night': ['오르골 밤', '성긴 음'],
       'sava-harp': ['하프 자장가', '느린 아르페지오'],
       'sava-box': ['오르골 자장가', '맑은 벨'],
       'sava-xmas': ['오르골 캐럴', '고요한 밤']
@@ -547,14 +581,11 @@
     $('#nextTitle').textContent = cur ? (cur.t || '—') : '—';
   }
 
+  /* 유튜브가 안 되면 유튜브를 완전히 멈추고 내장 사운드만 남깁니다 */
   function fallbackToBuiltin(msg) {
-    if (state.sourceMode === 'builtin') return;
-    yt.errors = 0;
-    clearWatchdog();
     const sec = plan[activeIndex] || {};
-    // 광고 사이의 내장 사운드가 이미 나고 있으면 그 결을 그대로 이어갑니다 (무음 구간 없이)
-    if (!(audio && audio.playing && yt.playingBuiltin)) startBuiltin(sectionTexture(sec));
-    else { yt.adBuiltin = false; $('#sourceBadge').textContent = '내장 사운드'; }
+    clearYTTimers();
+    startBuiltin(sectionTexture(sec));
     if (msg) toast(msg);
     $('#footStatus').textContent = '내장 사운드 재생 중';
   }
@@ -593,11 +624,11 @@
   function skipTrack() {
     if (mode !== 'class') { toast('수업 중에 곡을 바꿀 수 있어요.'); return; }
     if (bodyscanOn) {
-      startBuiltin('bodyscan', { t: '바디스캔 명상', a: '가사 없는 낮은 드론 · 숨결' });
+      startBuiltin('bodyscan', { t: '바디스캔 명상', a: '아주 낮은 울림 · 숨결' });
       toast('바디스캔 사운드를 새로 시작합니다.');
       return;
     }
-    if (state.sourceMode === 'builtin' || !yt.ready || yt.playingBuiltin) {
+    if (state.sourceMode === 'builtin' || !yt.ready || owner === 'builtin') {
       const sec = plan[activeIndex] || {};
       startBuiltin(sectionTexture(sec));
       toast('새 연주로 바뀝니다.');
@@ -644,36 +675,56 @@
     renderNext();
   }
 
+  /* 대기 음악 첫 곡은 늘 같습니다 (맑은 피아노 한 곡으로 시작) — 그 뒤만 섞습니다 */
+  function waitList() {
+    const base = tracksFor('wait');
+    if (!base.length) return [];
+    return [base[0]].concat(shuffle(base.slice(1)));
+  }
+
   function playAmbient(resume) {
     state.ambientOn = true;
     $('#ambientBtn').setAttribute('aria-pressed', 'true');
     $('#ambientBtnLabel').textContent = '대기 음악 끄기';
     $('#footStatus').textContent = '대기 음악 재생 중';
     if (state.sourceMode === 'builtin' || !yt.ready) {
-      if (audio && audio.playing && resume) return;
-      startBuiltin('waiting', { t: '대기 음악', a: '웜 앰비언트 패드' });
+      if (owner === 'builtin' && audio && audio.playing && resume) return;
+      startBuiltin('waiting', { t: '대기 음악', a: '맑은 하프 아르페지오' });
       ensureYT();
       return;
     }
-    const list = shuffle(tracksFor('wait'));
+    const list = waitList();
     if (!list.length) { startBuiltin('waiting'); return; }
     yt.queue = list; yt.qi = 0; yt.currentKey = 'wait';
     ytPlayTrack(list[0]);
     renderNext();
   }
+
+  /* 모든 소리를 부드럽게 줄여 끕니다 (수업 종료 · 대기 음악 끄기) */
+  function fadeOutAll(ms) {
+    const d = ms || 1800;
+    clearYTTimers();
+    if (yt.player) {
+      ytFadeTo(0, d);
+      yt.stopTimer = setTimeout(() => { try { if (yt.player) yt.player.stopVideo(); } catch (e) {} }, d + 200);
+    }
+    if (audio && audio.playing) audio.stop(d / 1000);
+    owner = 'none';
+  }
+
   /* 대기 음악을 갑자기 끊지 않고, 수업 첫 구간이 페이드 인하는 동안 겹치며 줄입니다 */
   function endAmbientSoft() {
     state.ambientOn = false;
     $('#ambientBtn').setAttribute('aria-pressed', 'false');
     $('#ambientBtnLabel').textContent = '대기 음악 켜기';
-    if (yt.player && ytAudible()) {
+    clearYTTimers();
+    if (yt.player) {
       ytFadeTo(0, FADE);
-      setTimeout(() => { try { yt.player.stopVideo(); } catch (e) {} }, FADE + 250);
-    } else if (yt.player) {
-      setTimeout(() => { try { yt.player.stopVideo(); } catch (e) {} }, 300);
+      yt.stopTimer = setTimeout(() => { try { if (yt.player) yt.player.pauseVideo(); } catch (e) {} }, FADE + 200);
     }
     if (audio && audio.playing) audio.stop(FADE / 1000);
     yt.queue = [];
+    owner = 'none';
   }
 
   function stopAmbient(fadeMs) {
@@ -681,13 +732,7 @@
     $('#ambientBtn').setAttribute('aria-pressed', 'false');
     $('#ambientBtnLabel').textContent = '대기 음악 켜기';
     $('#footStatus').textContent = '대기 중';
-    if (yt.player && ytAudible()) {
-      ytFadeTo(0, fadeMs || FADE);
-      setTimeout(() => { try { if (yt.player) yt.player.stopVideo(); } catch (e) {} }, (fadeMs || FADE) + 250);
-    } else if (yt.player) {
-      setTimeout(() => { try { if (yt.player) yt.player.stopVideo(); } catch (e) {} }, 300);
-    }
-    stopBuiltin(fadeMs ? fadeMs / 1000 : undefined);
+    fadeOutAll(fadeMs || FADE);
     yt.queue = [];
     $('#nowCard') && $('#nowCard').classList.remove('is-playing');
   }
@@ -818,9 +863,7 @@
     const total = planTotalMs();
     showScreen('done');
     if (bodyscanOn) setBodyscan(false, { quiet: true, skipResume: true });
-    if (yt.player) ytFadeTo(0, 1800);
-    setTimeout(() => { try { if (yt.player) yt.player.stopVideo(); } catch (e) {} }, 1900);
-    stopBuiltin();
+    fadeOutAll(1800);
     releaseWake();
     if (state.chime) setTimeout(() => chime(), 300);
     $('#doneStats').innerHTML =
@@ -846,6 +889,7 @@
       $('#app').classList.add('is-paused');
       $('#playBtn').setAttribute('aria-label', '재생');
       $('#nowCard').classList.remove('is-playing');
+      clearYTTimers();
       if (yt.player) { try { yt.player.pauseVideo(); } catch (e) {} }
       if (audio && audio.playing) audio.stop(0.4);
       releaseWake();
@@ -856,8 +900,8 @@
       $('#playBtn').setAttribute('aria-label', '일시정지');
       $('#nowCard').classList.add('is-playing');
       if (bodyscanOn) {
-        startBuiltin('bodyscan', { t: '바디스캔 명상', a: '가사 없는 낮은 드론 · 숨결' });
-      } else if (yt.playingBuiltin || state.sourceMode === 'builtin' || !yt.ready) {
+        startBuiltin('bodyscan', { t: '바디스캔 명상', a: '아주 낮은 울림 · 숨결' });
+      } else if (owner === 'builtin' || state.sourceMode === 'builtin' || !yt.ready) {
         const sec = plan[activeIndex];
         startBuiltin(sectionTexture(sec));
       } else if (yt.player) {
@@ -901,7 +945,7 @@
       if (el) el.setAttribute('aria-pressed', String(on));
     });
     if (on) {
-      startBuiltin('bodyscan', { t: '바디스캔 명상', a: '가사 없는 낮은 드론 · 숨결' });
+      startBuiltin('bodyscan', { t: '바디스캔 명상', a: '아주 낮은 울림 · 숨결' });
       $('#footStatus').textContent = '바디스캔 명상 사운드';
       if (!opts.quiet) toast('바디스캔 명상 사운드가 흐릅니다. 끄려면 한 번 더 눌러 주세요.');
     } else {
@@ -1047,7 +1091,7 @@
       state.volume = Number(e.target.value);
       savePrefs();
       const v = outVolume();
-      if (yt.player) yt.player.setVolume(v);
+      if (owner === 'youtube' && yt.player) { yt.volume = v; try { yt.player.setVolume(v); } catch (e2) {} }
       if (audio) audio.setVolume(v / 100);
     });
 
@@ -1200,6 +1244,17 @@
     state, buildPlan,
     get plan() { return plan; },
     get yt() { return yt; },
-    get audio() { return audio; }
+    get audio() { return audio; },
+    get owner() { return owner; },
+    get mode() { return mode; },
+    /* 진단·검증용 — 유튜브 재생 중 내장 사운드 출력이 0인지 실측할 때 씁니다 */
+    musicPeak() { return audio ? audio.musicPeak() : 0; },
+    musicLevel() { return audio ? audio.musicLevel() : 0; },
+    deckGains() { return audio && audio.decks ? audio.decks.map((d) => d.out.gain.value) : []; },
+    builtinPlaying() { return !!(audio && audio.playing); },
+    debug: {
+      watchPlayback, fallbackToBuiltin, startBuiltin, fadeOutAll,
+      playSection, playAmbient, stopAmbient, chime
+    }
   };
 })();

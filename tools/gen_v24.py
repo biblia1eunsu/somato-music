@@ -90,7 +90,7 @@ data = {
             T("On the Nature of Daylight", "Max Richter", "InyT9Gyoz_o"),
         ],
         "mantra": [
-            T("Ishq' Allah", "Deva Premal & Miten", "wkX2nFppLNQ", N),
+            T("Ishq' Allah", "Deva Premal & Miten", "gpSyVUh6chw", N),
             T("I Am (feat. Nirinjan Kaur)", "Krishan · Nirinjan Kaur", "PrS7eTkO5gM"),
             T("Gobinday Mukunday", "Snatam Kaur", "27ORb1DnSNo", N),
             T("Aad Guray Nameh", "Mirabai Ceiba", "WsDKzulNW00", N),
@@ -152,7 +152,7 @@ data = {
             T("Aqua", "Ryuichi Sakamoto", "W51tXJ1YwuA"),
         ],
         "vocal": [
-            T("Ishq' Allah", "Deva Premal & Miten", "wkX2nFppLNQ"),
+            T("Ishq' Allah", "Deva Premal & Miten", "gpSyVUh6chw"),
             T("I Am (feat. Nirinjan Kaur)", "Krishan · Nirinjan Kaur", "PrS7eTkO5gM"),
             T("Gobinday Mukunday", "Snatam Kaur", "27ORb1DnSNo"),
             T("Aad Guray Nameh", "Mirabai Ceiba", "WsDKzulNW00"),
