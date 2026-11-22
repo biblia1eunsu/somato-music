@@ -9,7 +9,7 @@
      한 번 새로고침해서 v29 화면으로 바꿉니다.
    버전을 올릴 때는 아래 VERSION 과 index.html 의 ?v= 값을 함께 바꿉니다. */
 const VERSION = 'v29';
-const REV = 'a';                     // 같은 버전 안에서 파일을 고쳤을 때 캐시를 새로 받습니다
+const REV = 'b';                     // 같은 버전 안에서 파일을 고쳤을 때 캐시를 새로 받습니다
 const CACHE = 'somato-music-' + VERSION + REV;
 const ASSETS = [
   './',
