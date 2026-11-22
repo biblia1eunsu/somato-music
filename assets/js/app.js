@@ -761,9 +761,10 @@
     }
     if (!yt.ready) { waitForYT(yt.currentKey); return; }
     if (yt.queue.length < 2) {
-      const sec = plan[activeIndex] || {};
-      startBuiltin(sectionTexture(sec));
-      toast('이 구간의 새 연주로 바뀝니다.');
+      /* 이 구간에 곡이 하나뿐이면 신시사이저로 대신하지 않고 같은 곡을 처음부터 다시 풀어 줍니다 */
+      const only = yt.queue[0];
+      if (only) ytPlayTrack(only, { crossfade: true });
+      toast('이 구간에는 곡이 하나라 같은 곡을 처음부터 다시 틉니다.');
       return;
     }
     nextTrack(false, { crossfade: true });
@@ -884,21 +885,19 @@
       startBuiltin('waiting', { t: '대기 음악', a: '맑은 하프 아르페지오' });
       return;
     }
-    /* 유튜브가 아직 준비되지 않았으면 내장 사운드 대신 잠시 기다렸다가 대기 곡을켜줍니다 */
+    /* 유튜브가 아직 준비되지 않았으면 내장 사운드 대신 잠시 기다렸다가 대기 곡을 켜 줍니다 */
     if (!yt.ready) {
       ensureYT();
       yt.waitTries = (yt.waitTries || 0) + 1;
-      if (yt.waitTries <= 20) {
-        setTimeout(() => { if (state.ambientOn && mode !== 'class') playAmbient(resume); }, 400);
-        return;
-      }
-      startBuiltin('waiting', { t: '대기 음악', a: '맑은 하프 아르페지오' });
-      toast('YouTube를 열지 못해 대기 음악을 내장 사운드로 켰습니다.');
+      $('#footStatus').textContent = '대기 음악 · YouTube 연결 중';
+      if (yt.waitTries === 21) toast('YouTube를 열지 못해 기다리고 있습니다. 내장 사운드로 들으시려면 아래 “유튜브” 칩을 눌러 주세요.');
+      setTimeout(() => { if (state.ambientOn && mode !== 'class' && !yt.ready) playAmbient(resume); }, 400);
       return;
     }
     yt.waitTries = 0;
+    if (state.ambientOn && mode !== 'class') $('#footStatus').textContent = '대기 음악 재생 중';
     const list = waitList();
-    if (!list.length) { startBuiltin('waiting'); return; }
+    if (!list.length) { toast('대기 음악으로 틀 곡이 없습니다. 선곡 관리에서 곡을 되돌려 주세요.'); return; }
     yt.queue = list; yt.qi = 0; yt.currentKey = 'wait';
     showStartBox();          // 광고가 나오면 바로 건너뛸 수 있게 잠깐 화면을 띄웁니다
     ytPlayTrack(list[0]);
