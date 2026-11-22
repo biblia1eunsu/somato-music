@@ -181,7 +181,7 @@ html[data-theme="dark"] .ico-sun{display:none}
 .segments i.active{background:var(--accent)}
 
 .now-card{
-  margin-top:24px;padding:17px 18px 15px;border:1px solid var(--line);border-radius:20px;
+  margin-top:20px;padding:17px 18px 15px;border:1px solid var(--line);border-radius:20px;
   background:var(--surface);box-shadow:var(--shadow);position:relative;overflow:hidden;
 }
 .now-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -220,7 +220,7 @@ html[data-theme="dark"] .ico-sun{display:none}
 .wave i:nth-child(16){height:6px;animation-delay:-1.45s}
 @keyframes pulse{0%,100%{transform:scaleY(.55)}50%{transform:scaleY(1)}}
 
-.controls{display:flex;align-items:center;justify-content:center;gap:26px;margin-top:20px}
+.controls{display:flex;align-items:center;justify-content:center;gap:26px;margin-top:16px}
 .ctrl{
   width:46px;height:46px;border-radius:50%;border:1px solid var(--line);color:var(--ink-2);
   display:grid;place-items:center;background:transparent;transition:transform .15s ease,color .2s;
@@ -234,7 +234,7 @@ html[data-theme="dark"] .ico-sun{display:none}
 .is-paused .ctrl-main .ico-play{display:block}
 .is-paused .ctrl-main .ico-pause{display:none}
 
-.volume-row{display:flex;align-items:center;gap:10px;margin-top:18px;padding:0 4px}
+.volume-row{display:flex;align-items:center;gap:10px;margin-top:14px;padding:0 4px}
 .volume-row .ico{width:15px;height:15px;color:var(--ink-3);flex:none}
 input[type="range"]{
   -webkit-appearance:none;appearance:none;flex:1;height:26px;background:transparent;
@@ -247,9 +247,9 @@ input[type="range"]::-webkit-slider-thumb{
 input[type="range"]::-moz-range-track{height:2px;background:var(--line)}
 input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--ink)}
 
-.quick{display:flex;flex-wrap:wrap;gap:7px;margin-top:20px}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
 .toggle-pill{
-  display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid var(--line);
+  display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--line);
   border-radius:999px;font-size:11px;color:var(--ink-3);letter-spacing:.02em;transition:all .2s ease;
 }
 .toggle-pill .dot{width:5px;height:5px;border-radius:50%;background:var(--ink-3);opacity:.55;transition:all .2s}
@@ -270,7 +270,7 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
 .sava-chip.is-on{background:var(--btn-bg);color:var(--btn-ink);border-color:var(--btn-bg)}
 
 .end-btn{
-  width:100%;height:44px;margin-top:22px;border-radius:14px;border:1px solid var(--line-soft);
+  width:100%;height:42px;margin-top:16px;border-radius:14px;border:1px solid var(--line-soft);
   color:var(--ink-3);font-size:11.5px;letter-spacing:.04em;
 }
 
