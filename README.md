@@ -37,9 +37,9 @@
 
 ## 플로우 테마
 
-- **클래식 소마토 플로우** — 뉴에이지 · 레이키 · 스파 (David Lanz, Parijat, Fiona Joy Hawkins, Deuter)
-- **네오클래식 피아노 플로우** — 루도비코 에이나우디, 올라퓌르 아르날즈, 류이치 사카모토, 막스 리히터, Levi Patel
-- **만트라 · 보컬 힐링 플로우** — Deva Premal, Snatam Kaur, Mirabai Ceiba, Nirinjan Kaur
+- **소마토 · 연주 & 핸드팬 플로우** — 핸드팬 · 뉴에이지 · 피아노 연주 (Parijat, Argon Riffer, David Lanz, Deuter, Hang Massive, 키네틱플로우)
+- **만트라 · 리프레쉬 플로우** — Deva Premal & Miten, Snatam Kaur, Mirabai Ceiba, Nirinjan Kaur, Alexia Chellun, Jane Winther
+- **감성 팝 · 슬로우 플로우** — Norah Jones, Birdy, HONNE, London Grammar, Rachael Yamagata, Jeff Bernat, Låpsley, Lady Gaga
 - **크리스마스 · 연말 캐럴 모드** — 잔잔한 피아노 캐럴 (Rousseau, Francesco Parrino, Fiona Joy Hawkins)
 
 ## 사바아사나 추천 풀

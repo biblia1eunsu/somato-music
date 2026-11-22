@@ -19,7 +19,7 @@
   const AMBIENT_SCALE = 0.68;   // 대기 음악은 설정 볼륨의 68%로 더 은은하게
   const VOLUME_CURVE = 2;       // 62% → 42% 로 낮춘 기본 볼륨 (한 번만 적용)
   const DEFAULT_PREFS = {
-    theme: 'classic', savaMin: 10, pool: 'random', volume: 42,
+    theme: 'soma', savaMin: 10, pool: 'random', volume: 42,
     sourceMode: 'auto', chime: true, wake: true, dark: false, custom: {}, volCurve: VOLUME_CURVE,
     excluded: {}, pins: {},
   };
@@ -43,6 +43,8 @@
     if (!state.custom || typeof state.custom !== 'object') state.custom = {};
     if (!state.excluded || typeof state.excluded !== 'object') state.excluded = {};
     if (!state.pins || typeof state.pins !== 'object') state.pins = {};
+    /* v6에서 플로우 테마를 은수 님 폴더 구조로 바꿨습니다 — 예전 이름이 남아 있으면 첫 테마로 */
+    if (!FLOW_THEMES[state.theme]) state.theme = DEFAULT_PREFS.theme;
     state.savaMin = Number(state.savaMin) === 5 ? 5 : 10;
     /* 이미 62%로 저장해 두신 기기에서도 한 번만 더 낮춘 볼륨으로 맞춥니다 */
     if (state.volCurve !== VOLUME_CURVE) {
@@ -81,12 +83,12 @@
 
   /* ── 수업 구성 ───────────────────────────────── */
   const FLOW_THEMES = {
-    classic: { name: '클래식 소마토 플로우', short: '클래식', texture: 'flow-classic',
-      desc: '뉴에이지 · 레이키 · 스파' },
-    neoclassic: { name: '네오클래식 피아노 플로우', short: '네오클래식', texture: 'flow-neo',
-      desc: '피아노 · 현대 클래식' },
-    mantra: { name: '만트라 · 보컬 힐링 플로우', short: '만트라', texture: 'flow-mantra',
-      desc: '만트라 · 키르탄 · 보컬' },
+    soma: { name: '소마토 · 연주 & 핸드팬 플로우', short: '소마토 연주', texture: 'flow-classic',
+      desc: '핸드팬 · 뉴에이지 · 피아노 연주' },
+    mantra: { name: '만트라 · 리프레쉬 플로우', short: '만트라', texture: 'flow-mantra',
+      desc: '만트라 · 키르탄 · 보컬 힐링' },
+    pop: { name: '감성 팝 · 슬로우 플로우', short: '감성 팝', texture: 'flow-neo',
+      desc: '팝 · 어쿠스틱 · 슬로우' },
     christmas: { name: '크리스마스 · 연말 캐롤 모드', short: '캐롤', texture: 'flow-xmas',
       desc: '잔잔한 피아노 · 어쿠스틱 캐롤' }
   };
