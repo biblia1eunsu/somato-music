@@ -1169,7 +1169,8 @@
     if (!pv.restore) {
       pv.restore = {
         classMode: mode === 'class' && !!plan[activeIndex],
-        ambient: !!state.ambientOn
+        ambient: !!state.ambientOn,
+        owner: owner
       };
     }
     clearYTTimers();
@@ -1185,8 +1186,25 @@
     pv.restore = null;
     if (!r) return;
     if (r.classMode && mode === 'class' && plan[activeIndex]) {
-      playSection(activeIndex, { crossfade: true });
-      $('#nowCard').classList.add('is-playing');
+      /* 같은 곡이 그대로 열려 있으면 그 지점에서 이어지고, 아니면 구간을 다시 시작합니다 */
+      let same = false;
+      try {
+        const vd = yt.player ? (yt.player.getVideoData() || {}) : {};
+        same = r.owner === 'youtube' && !!yt.expected && vd.video_id === yt.expected;
+      } catch (e) { same = false; }
+      if (same) {
+        takeYT();
+        try { yt.player.playVideo(); } catch (e) {}
+        yt.volume = 0;
+        setBadge('youtube');
+        $('#nowCard').classList.add('is-playing');
+        ytFadeTo(outVolume(), 1200);
+        watchPlayback();
+        armWatchdog(12000);
+      } else {
+        playSection(activeIndex, { crossfade: true });
+        $('#nowCard').classList.add('is-playing');
+      }
       $('#footStatus').textContent = '수업 진행 중';
     } else if (r.ambient && state.ambientOn) {
       playAmbient(true);
@@ -1228,10 +1246,9 @@
       pv.player.loadVideoById({ videoId: y, startSeconds: 0 });
     } catch (e) { previewFailed(); return; }
     setTimeout(() => { try { pv.player.playVideo(); } catch (e) {} }, 260);
-    pvFadeTo(state.volume, 900);
     watchPreviewAd();
     pv.watchdog = setTimeout(() => {
-      if (pv.playing) return;
+      if (pv.playing || pv.ad) return;
       let st = -1, ct = 0, dur = 0;
       try {
         st = pv.player.getPlayerState();
@@ -1240,32 +1257,33 @@
       } catch (e) { return; }
       if (st === 1 || ct > 1 || dur > 0) { pv.playing = true; syncPreviewUI(); return; }
       previewFailed();
-    }, 9000);
+    }, 30000);
   }
 
-  /* 미리듣기도 광고는 조용하게 — 광고(100초 이하) 동안은 무음으로 두고
-     본 음악이 시작되면 그때 볼륨을 올립니다 (수업 재생과 같은 규칙) */
+  /* 미리듣기는 광고부터 조용하게 — 본 음악이 확인되기 전까지는 무음으로 두고
+     실제 곡이 시작된 순간에만 볼륨을 올립니다 (수업 재생과 같은 규칙) */
   function watchPreviewAd() {
     clearInterval(pv.adTimer);
     pv.ad = false;
     pv.adTimer = setInterval(() => {
       if (!pv.player || !pv.track) { clearInterval(pv.adTimer); pv.adTimer = null; return; }
-      let dur = 0;
-      try { dur = pv.player.getDuration() || 0; } catch (e) { return; }
-      if (dur > 0 && dur < 100) {
-        if (pv.vol > 0) {
-          clearInterval(pv.fade);
-          pv.fade = null;
-          pv.vol = 0;
-          try { pv.player.setVolume(0); } catch (e) {}
-        }
-        pv.ad = true;
-      } else if (dur >= 100) {
-        if (pv.ad) { pv.ad = false; pvFadeTo(state.volume, 1200); }
+      let dur = 0, vid = '';
+      try {
+        dur = pv.player.getDuration() || 0;
+        const vd = pv.player.getVideoData ? (pv.player.getVideoData() || {}) : {};
+        vid = vd.video_id || '';
+      } catch (e) { return; }
+      const mine = !!vid && vid === pv.track;
+      if (dur >= 100 || (mine && dur > 20)) {
         clearInterval(pv.adTimer);
         pv.adTimer = null;
+        pv.ad = false;
+        pvFadeTo(state.volume, 900);
+        syncPreviewUI();
+        return;
       }
-    }, 500);
+      if (!pv.ad) { pv.ad = true; syncPreviewUI(); }
+    }, 400);
   }
 
   function pvFadeTo(target, ms) {
@@ -1439,7 +1457,8 @@
       now.hidden = !pv.track;
       if (pv.track) {
         const t = rawTracks(pv.key).filter((x) => x.y === pv.track)[0] || {};
-        $('#plNowTitle').textContent = (pv.playing ? '미리듣기 · ' : '준비 중 · ') + (t.t || '');
+        $('#plNowTitle').textContent =
+          (pv.ad ? '광고 · 잠시 무음 · ' : (pv.playing ? '미리듣기 · ' : '준비 중 · ')) + (t.t || '');
       }
     }
   }
