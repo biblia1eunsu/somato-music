@@ -369,7 +369,9 @@
 
   function playPool(key, opts) {
     yt.currentKey = key;
-    yt.queue = shuffle(tracksFor(key));
+    const list = tracksFor(key);
+    // 첫 곡은 큐레이션 순서를 지키고, 그 뒤만 섞습니다.
+    yt.queue = list.length ? [list[0]].concat(shuffle(list.slice(1))) : [];
     yt.qi = 0;
     yt.errors = 0;
 
@@ -456,6 +458,7 @@
   }
 
   function enterSection(idx, opts) {
+    opts = opts || {};
     if (idx < 0 || idx >= plan.length) return;
     const sec = plan[idx];
     activeIndex = idx;
@@ -723,6 +726,7 @@
       const base = pausedAt || Date.now();
       startedAt = base - boundaries()[idx] - pausedTotal;
       enterSection(idx);
+      tick();
     };
     $('#nextBtn').addEventListener('click', () => jump(1));
     $('#prevBtn').addEventListener('click', () => jump(-1));
