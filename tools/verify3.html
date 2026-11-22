@@ -8,20 +8,21 @@ h1{font-size:15px;font-weight:600;margin:0 0 6px}
 p{color:#9b9b9b;margin:0 0 12px}
 table{border-collapse:collapse;width:100%;font-size:12px}
 td,th{border-bottom:1px solid #262626;padding:4px 6px;text-align:left;vertical-align:top}
-.ok{color:#6ee7a0}.bad{color:#ff7a7a}.wait{color:#c9c9c9}
+.ok{color:#6ee7a0}.bad{color:#ff7a7a}.wait{color:#c9c9c9}.ad{color:#e8c777}
 #player{position:fixed;right:6px;bottom:6px;width:180px;height:101px;opacity:.2;pointer-events:none}
 #sum{margin:8px 0;color:#ccc;font-weight:600}
 </style></head><body>
 <h1>YouTube 임베드 재생 검증 v3</h1>
-<p>실제 IFrame 플레이어로 음소거 재생해 Error 101/150/2/5 여부를 확인합니다.</p>
+<p>실제 IFrame 플레이어로 음소거 재생해 Error 101/150/2/5 여부를 확인합니다. 광고가 나오면 기다립니다.</p>
 <div id="sum">대기 중…</div>
 <table><thead><tr><th>#</th><th>구간</th><th>ID</th><th>제목</th><th>결과</th><th>초</th></tr></thead><tbody id="tb"></tbody></table>
 <div id="player"></div>
 <script>
-const ITEMS = [{"id": "NJdrQ2jjqOU", "label": "소향 바람의 노래 (Sohyang official)", "cat": "vocal·소향 Wind Song"}, {"id": "bMWqmn1CNvo", "label": "Sohyang Wind Song (Bugs MV)", "cat": "vocal·소향 Wind Song"}, {"id": "1P3jzu6Mt6w", "label": "성시경 너의 모든 순간 (official)", "cat": "vocal·성시경"}, {"id": "Dbxzh078jr4", "label": "성시경 너의 모든 순간 (1theK MV)", "cat": "vocal·성시경"}, {"id": "sCmcSBsTxQc", "label": "이무진 비와 당신 (STONE MUSIC MV)", "cat": "vocal·이무진"}, {"id": "u7YpTIoBU74", "label": "이무진 비와 당신 lyrics", "cat": "vocal·이무진"}, {"id": "jcuIJ9waAVw", "label": "샘김 그 여름밤 (Antenna official audio)", "cat": "vocal·샘김 그 여름밤"}, {"id": "cI6stNrIRzE", "label": "샘김 그 여름밤 lyrics", "cat": "vocal·샘김 그 여름밤"}, {"id": "JWfyto-1oT0", "label": "Sam Kim YOUR SONG (official)", "cat": "vocal·샘김 Your Song"}, {"id": "PDZIKe7O_7w", "label": "Sam Kim Your Song lyrics", "cat": "vocal·샘김 Your Song"}, {"id": "KUuMyyZoYO4", "label": "Rachael Yamagata Duet (official)", "cat": "vocal·Yamagata Duet"}, {"id": "Acwk9Sl59oU", "label": "Rachael Yamagata Duet (official 2)", "cat": "vocal·Yamagata Duet"}, {"id": "uA6wARPeK_c", "label": "Rachael Yamagata Duet upload", "cat": "vocal·Yamagata Duet"}, {"id": "l3oIS8kWWn0", "label": "Rachael Yamagata You Won't Let Me (official)", "cat": "vocal·Yamagata You Won't Let Me"}, {"id": "bv-qQRjeKoI", "label": "Yamagata You Won't Let Me upload", "cat": "vocal·Yamagata You Won't Let Me"}, {"id": "YzR8BCmV9Ew", "label": "Susie Suh Here With Me (official)", "cat": "vocal·Susie Suh Here With Me"}, {"id": "N3bgkE8sAg0", "label": "Robot Koch Here With Me (official)", "cat": "vocal·Susie Suh Here With Me"}, {"id": "a5sux0Ap-FI", "label": "MrSuicideSheep Here With Me", "cat": "vocal·Susie Suh Here With Me"}, {"id": "lbjZPFBD6JU", "label": "Norah Jones Come Away With Me (official)", "cat": "vocal·Norah Come Away"}, {"id": "rZbhDOC7oyI", "label": "Norah Jones Come Away (official 2)", "cat": "vocal·Norah Come Away"}, {"id": "hsLiJP2rqS8", "label": "Luke Chiang Shouldn't Be (official)", "cat": "vocal·Luke Chiang"}, {"id": "jfDu6KZ9O4w", "label": "Luke Chiang Shouldn't Be lyrics", "cat": "vocal·Luke Chiang"}, {"id": "NNvwaTNqjik", "label": "Kate Vogel Reasons to Stay (Topic)", "cat": "vocal·Kate Vogel"}, {"id": "3szY1OSTYyQ", "label": "Kate Vogel Reasons to Stay lyrics", "cat": "vocal·Kate Vogel"}, {"id": "hCrtcVDgCGw", "label": "SLANDER Love Is Gone acoustic (official)", "cat": "vocal·Slander Love Is Gone"}, {"id": "9TkzaeSUcYU", "label": "SLANDER Love Is Gone lyric video", "cat": "vocal·Slander Love Is Gone"}, {"id": "PFG8VCQ9pG0", "label": "Micah Edwards Moments (official)", "cat": "vocal·Micah Edwards"}, {"id": "qvUdoOmvi7c", "label": "Moments lyrics", "cat": "vocal·Micah Edwards"}, {"id": "bq3SXN3GWvI", "label": "Ashley Davis Fare Thee Well (Topic)", "cat": "vocal·Ashley Davis"}, {"id": "9i8DA7CDL68", "label": "Ashley Davis Fare Thee Well (official)", "cat": "vocal·Ashley Davis"}, {"id": "IsK0LL3qm5E", "label": "Ashton Edminster Love so True (official)", "cat": "vocal·Ashton Edminster"}, {"id": "-IgKywhDYS4", "label": "Ashton Edminster Love So True alt", "cat": "vocal·Ashton Edminster"}, {"id": "T__HNxkZPCc", "label": "Chendy Nothing's Gonna Change (official)", "cat": "vocal·Chendy"}, {"id": "ARXBzW7IfWc", "label": "Nothing gonna change cover", "cat": "vocal·Chendy"}, {"id": "zTqdBX5FChw", "label": "Miten Exactly as It Is (Topic)", "cat": "vocal·Miten"}, {"id": "RfTu-mqFPPA", "label": "Miten Exactly as It Is upload", "cat": "vocal·Miten"}, {"id": "QAzsVYgwE2s", "label": "Cabrini Asteriska Lokah (official live)", "cat": "vocal·Cabrini Lokah"}, {"id": "4VwXQxejYhQ", "label": "Asteriska Lokah studio", "cat": "vocal·Cabrini Lokah"}, {"id": "kq24R_8jYg4", "label": "Sophia James Somebody New (Topic)", "cat": "vocal·Sophia James"}, {"id": "5e6tvrz5X6I", "label": "Sophia James Somebody New lyrics", "cat": "vocal·Sophia James"}, {"id": "2SvKuIvwtXU", "label": "Levi Patel As She Passes (official)", "cat": "piano·Levi Patel As She Passes"}, {"id": "CL36Kj6L6-4", "label": "Levi Patel As She Passes upload", "cat": "piano·Levi Patel As She Passes"}, {"id": "v9Blx4URf34", "label": "Levi Patel And She Translated (official)", "cat": "piano·Levi Patel Translated"}, {"id": "iqkgLhRThIE", "label": "Fiona Joy Hawkins Grace (official)", "cat": "piano·Fiona Joy Grace"}, {"id": "luee_gL4F8g", "label": "Fiona Joy Hawkins Grace Deluxe", "cat": "piano·Fiona Joy Grace"}, {"id": "niCMpOkMcWU", "label": "Hammock I Can Almost See You (official)", "cat": "piano·Hammock"}, {"id": "96DL94T21sw", "label": "Hammock I Would Give My Breath Away", "cat": "piano·Hammock"}, {"id": "0kYc55bXJFI", "label": "Olafur Arnalds Near Light (official MV)", "cat": "piano·Olafur Near Light"}, {"id": "urRNNvODXfM", "label": "Olafur Arnalds Near Light", "cat": "piano·Olafur Near Light"}, {"id": "kSRnuWAaeH8", "label": "Goldmund Threnody (official audio)", "cat": "piano·Goldmund Threnody"}, {"id": "rBOyX5h7Zqc", "label": "Goldmund Threnody", "cat": "piano·Goldmund Threnody"}, {"id": "2P8PZbh53ec", "label": "Nils Frahm Over There It's Raining", "cat": "piano·Nils Frahm"}, {"id": "OlaTeXX3uH8", "label": "Brian Eno An Ending Ascent (official)", "cat": "bodyscan·Brian Eno"}, {"id": "hvzQQOAjuoU", "label": "Brian Eno An Ending Ascent remaster", "cat": "bodyscan·Brian Eno"}, {"id": "_8aYF9PtQjA", "label": "Stars of the Lid Requiem Pt.2 (official)", "cat": "bodyscan·Stars of the Lid"}, {"id": "-bc37fU36Vk", "label": "Stars of the Lid Requiem Pt.1 (official)", "cat": "bodyscan·Stars of the Lid"}, {"id": "83JW5ZhVSWc", "label": "Eluvium Indoor Swimming (official)", "cat": "bodyscan·Eluvium"}, {"id": "cIUnVO3tWfo", "label": "Eluvium Indoor Swimming upload", "cat": "bodyscan·Eluvium"}, {"id": "rt97c92WjRw", "label": "Steve Roach Structures from Silence (Topic)", "cat": "bodyscan·Steve Roach"}, {"id": "UWb5DIJch_k", "label": "Steve Roach Structures from Silence upload", "cat": "bodyscan·Steve Roach"}];
+const ITEMS = [{"id": "NJdrQ2jjqOU", "label": "소향 바람의 노래 (Sohyang official)", "cat": "vocal·소향 Wind Song"}, {"id": "bMWqmn1CNvo", "label": "Sohyang Wind Song (Bugs MV)", "cat": "vocal·소향 Wind Song"}, {"id": "1P3jzu6Mt6w", "label": "성시경 너의 모든 순간 (official)", "cat": "vocal·성시경"}, {"id": "Dbxzh078jr4", "label": "성시경 너의 모든 순간 (1theK MV)", "cat": "vocal·성시경"}, {"id": "sCmcSBsTxQc", "label": "이무진 비와 당신 (STONE MUSIC MV)", "cat": "vocal·이무진"}, {"id": "u7YpTIoBU74", "label": "이무진 비와 당신 lyrics", "cat": "vocal·이무진"}, {"id": "jcuIJ9waAVw", "label": "샘김 그 여름밤 (Antenna official audio)", "cat": "vocal·샘김 그 여름밤"}, {"id": "cI6stNrIRzE", "label": "샘김 그 여름밤 lyrics", "cat": "vocal·샘김 그 여름밤"}, {"id": "JWfyto-1oT0", "label": "Sam Kim YOUR SONG (official)", "cat": "vocal·샘김 Your Song"}, {"id": "PDZIKe7O_7w", "label": "Sam Kim Your Song lyrics", "cat": "vocal·샘김 Your Song"}, {"id": "KUuMyyZoYO4", "label": "Rachael Yamagata Duet (official)", "cat": "vocal·Yamagata Duet"}, {"id": "Acwk9Sl59oU", "label": "Rachael Yamagata Duet (official 2)", "cat": "vocal·Yamagata Duet"}, {"id": "l3oIS8kWWn0", "label": "Rachael Yamagata You Won't Let Me (official)", "cat": "vocal·Yamagata You Won't Let Me"}, {"id": "bv-qQRjeKoI", "label": "Yamagata You Won't Let Me upload", "cat": "vocal·Yamagata You Won't Let Me"}, {"id": "YzR8BCmV9Ew", "label": "Susie Suh Here With Me (official)", "cat": "vocal·Susie Suh Here With Me"}, {"id": "N3bgkE8sAg0", "label": "Robot Koch Here With Me (official)", "cat": "vocal·Susie Suh Here With Me"}, {"id": "lbjZPFBD6JU", "label": "Norah Jones Come Away With Me (official)", "cat": "vocal·Norah Come Away"}, {"id": "rZbhDOC7oyI", "label": "Norah Jones Come Away (official 2)", "cat": "vocal·Norah Come Away"}, {"id": "hsLiJP2rqS8", "label": "Luke Chiang Shouldn't Be (official)", "cat": "vocal·Luke Chiang"}, {"id": "NNvwaTNqjik", "label": "Kate Vogel Reasons to Stay (Topic)", "cat": "vocal·Kate Vogel"}, {"id": "hCrtcVDgCGw", "label": "SLANDER Love Is Gone acoustic (official)", "cat": "vocal·Slander Love Is Gone"}, {"id": "9TkzaeSUcYU", "label": "SLANDER Love Is Gone lyric video", "cat": "vocal·Slander Love Is Gone"}, {"id": "PFG8VCQ9pG0", "label": "Micah Edwards Moments (official)", "cat": "vocal·Micah Edwards"}, {"id": "bq3SXN3GWvI", "label": "Ashley Davis Fare Thee Well (Topic)", "cat": "vocal·Ashley Davis"}, {"id": "9i8DA7CDL68", "label": "Ashley Davis Fare Thee Well (official)", "cat": "vocal·Ashley Davis"}, {"id": "IsK0LL3qm5E", "label": "Ashton Edminster Love so True (official)", "cat": "vocal·Ashton Edminster"}, {"id": "T__HNxkZPCc", "label": "Chendy Nothing's Gonna Change (official)", "cat": "vocal·Chendy"}, {"id": "zTqdBX5FChw", "label": "Miten Exactly as It Is (Topic)", "cat": "vocal·Miten"}, {"id": "RfTu-mqFPPA", "label": "Miten Exactly as It Is upload", "cat": "vocal·Miten"}, {"id": "QAzsVYgwE2s", "label": "Cabrini Asteriska Lokah (official live)", "cat": "vocal·Cabrini Lokah"}, {"id": "4VwXQxejYhQ", "label": "Asteriska Lokah studio", "cat": "vocal·Cabrini Lokah"}, {"id": "kq24R_8jYg4", "label": "Sophia James Somebody New (Topic)", "cat": "vocal·Sophia James"}, {"id": "5e6tvrz5X6I", "label": "Sophia James Somebody New lyrics", "cat": "vocal·Sophia James"}, {"id": "2SvKuIvwtXU", "label": "Levi Patel As She Passes (official)", "cat": "piano·Levi Patel As She Passes"}, {"id": "v9Blx4URf34", "label": "Levi Patel And She Translated (official)", "cat": "piano·Levi Patel Translated"}, {"id": "luee_gL4F8g", "label": "Fiona Joy Hawkins Grace Deluxe", "cat": "piano·Fiona Joy Grace"}, {"id": "niCMpOkMcWU", "label": "Hammock I Can Almost See You (official)", "cat": "piano·Hammock"}, {"id": "96DL94T21sw", "label": "Hammock I Would Give My Breath Away", "cat": "piano·Hammock"}, {"id": "0kYc55bXJFI", "label": "Olafur Arnalds Near Light (official MV)", "cat": "piano·Olafur Near Light"}, {"id": "kSRnuWAaeH8", "label": "Goldmund Threnody (official audio)", "cat": "piano·Goldmund Threnody"}, {"id": "2P8PZbh53ec", "label": "Nils Frahm Over There It's Raining", "cat": "piano·Nils Frahm"}, {"id": "OlaTeXX3uH8", "label": "Brian Eno An Ending Ascent (official)", "cat": "bodyscan·Brian Eno"}, {"id": "hvzQQOAjuoU", "label": "Brian Eno An Ending Ascent remaster", "cat": "bodyscan·Brian Eno"}, {"id": "_8aYF9PtQjA", "label": "Stars of the Lid Requiem Pt.2 (official)", "cat": "bodyscan·Stars of the Lid"}, {"id": "-bc37fU36Vk", "label": "Stars of the Lid Requiem Pt.1 (official)", "cat": "bodyscan·Stars of the Lid"}, {"id": "83JW5ZhVSWc", "label": "Eluvium Indoor Swimming (official)", "cat": "bodyscan·Eluvium"}, {"id": "cIUnVO3tWfo", "label": "Eluvium Indoor Swimming upload", "cat": "bodyscan·Eluvium"}, {"id": "rt97c92WjRw", "label": "Steve Roach Structures from Silence (Topic)", "cat": "bodyscan·Steve Roach"}, {"id": "UWb5DIJch_k", "label": "Steve Roach Structures from Silence upload", "cat": "bodyscan·Steve Roach"}];
+const TIMEOUT = 24000;
 window.__results = [];
 window.__done = false;
-let player = null, idx = 0, timer = null, startAt = 0;
+let player = null, idx = 0, timer = null, startAt = 0, retryQueue = [], retriesLeft = [];
 
 function rowFor(i, it){
   const tr = document.createElement('tr');
@@ -37,10 +38,8 @@ window.onYouTubeIframeAPIReady = function(){
     playerVars:{autoplay:0, controls:0, disablekb:1, modestbranding:1, playsinline:1, origin:location.origin},
     events:{
       onReady: ()=>{ try{player.mute();}catch(e){}; next(0); },
-      onError: (e)=>{ finish(false, 'error '+e.data); },
-      onStateChange: (e)=>{
-        if(e.data === 1 && window.__awaiting){ /* playing */ }
-      }
+      onError: (e)=>{ finish(false, 'error '+e.data, false); },
+      onStateChange: ()=>{}
     }
   });
 };
@@ -49,39 +48,90 @@ function loadApi(){
   s.onerror = ()=>{ document.getElementById('sum').textContent = 'IFrame API 로드 실패'; };
   document.head.appendChild(s);
 }
+function show(sumId, i, txt, cls){
+  const el = (sumId != null && sumId >= 0) ? rows[sumId] : null;
+  if (el) { el.cells[4].textContent = txt; el.cells[4].className = cls; }
+}
 function next(i){
   if(i >= ITEMS.length){ done(); return; }
-  idx = i; window.__awaiting = true;
+  idx = i;
   startAt = Date.now();
-  rows[i].cells[4].textContent = '재생 중…'; rows[i].cells[4].className = 'wait';
-  try { player.loadVideoById({videoId: ITEMS[i].id, startSeconds: 0}); } catch(e){ finish(false,'load '+e); }
+  show(i, i, '재생 중…', 'wait');
+  try { player.loadVideoById({videoId: ITEMS[i].id, startSeconds: 0}); } catch(e){ finish(false,'load '+e); return; }
   clearInterval(timer);
   timer = setInterval(()=>{
     const ms = Date.now() - startAt;
     rows[i].cells[5].textContent = (ms/1000).toFixed(1);
-    let st = -1, t = 0;
-    try { st = player.getPlayerState(); t = player.getCurrentTime(); } catch(e){}
-    if(st === 1 && t > 0.5) finish(true, 'playing '+t.toFixed(1)+'s');
-    else if(ms > 9000) finish(false, 'timeout state='+st);
-  }, 220);
+    let st = -1, t = 0, dur = 0, data = null;
+    try { st = player.getPlayerState(); t = player.getCurrentTime(); dur = player.getDuration(); data = player.getVideoData && player.getVideoData(); } catch(e){}
+    const isAd = dur > 0 && dur < 100;
+    if (isAd) show(i, i, '광고 대기…', 'ad');
+    if(st === 1 && t > 0.5 && !isAd) finish(true, 'playing '+t.toFixed(1)+'s');
+    else if(ms > TIMEOUT) finish(false, 'timeout state='+st+' dur='+Math.round(dur), isAd);
+  }, 250);
 }
-function finish(ok, note){
-  clearInterval(timer); window.__awaiting = false;
+function finish(ok, note, wasAd){
+  if (rows[idx].cells[4].textContent.startsWith('OK') || rows[idx].cells[4].textContent.startsWith('FAIL')) return;
+  clearInterval(timer);
   const secs = (Date.now() - startAt)/1000;
   const it = ITEMS[idx];
-  if (rows[idx].cells[4].textContent.startsWith('OK') || rows[idx].cells[4].textContent.startsWith('FAIL')) return;
+  let vtitle = '';
+  try { vtitle = (player.getVideoData()||{}).title || ''; } catch(e){}
   rows[idx].cells[4].textContent = (ok?'OK':'FAIL')+' · '+note;
   rows[idx].cells[4].className = ok ? 'ok' : 'bad';
   rows[idx].cells[5].textContent = secs.toFixed(1);
-  window.__results.push({id: it.id, cat: it.cat, label: it.label, ok, note, secs:+secs.toFixed(1)});
+  window.__results.push({id: it.id, cat: it.cat, label: it.label, ok, note, secs:+secs.toFixed(1), ad: !!wasAd, vtitle});
+  if (!ok) retriesLeft.push({item: it, row: idx});
   const okc = window.__results.filter(r=>r.ok).length;
-  document.getElementById('sum').textContent = `${window.__results.length}/${ITEMS.length} 검사 · OK ${okc} · FAIL ${window.__results.length-okc}`;
-  setTimeout(()=>next(idx+1), 120);
+  const fails = window.__results.filter(r=>!r.ok).length;
+  document.getElementById('sum').textContent = `${window.__results.length}/${ITEMS.length} · OK ${okc} · FAIL ${fails}`;
+  setTimeout(()=>next(idx+1), 150);
 }
 function done(){
+  if (retriesLeft.length && !window.__retried){
+    window.__retried = true;
+    document.getElementById('sum').textContent += ' · 실패 항목 재시도 중…';
+    const q = retriesLeft.slice(); retriesLeft = [];
+    window.__retryQ = q;
+    retryNext(0);
+    return;
+  }
   window.__done = true;
   const okc = window.__results.filter(r=>r.ok).length;
   document.getElementById('sum').textContent = `완료 — ${ITEMS.length}개 중 OK ${okc} · FAIL ${ITEMS.length-okc}`;
+}
+function retryNext(k){
+  const q = window.__retryQ || [];
+  if (k >= q.length){ window.__done = true;
+    const okc = window.__results.filter(r=>r.ok).length;
+    document.getElementById('sum').textContent = `완료 — ${ITEMS.length}개 중 OK ${okc} · FAIL ${ITEMS.length-okc}`;
+    return; }
+  const entry = q[k];
+  idx = entry.row;
+  rows[idx].cells[4].textContent = '재시도…'; rows[idx].cells[4].className='wait';
+  startAt = Date.now();
+  try { player.loadVideoById({videoId: ITEMS[idx].id, startSeconds: 0}); } catch(e){}
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    const ms = Date.now() - startAt;
+    let st=-1,t=0,dur=0;
+    try { st=player.getPlayerState(); t=player.getCurrentTime(); dur=player.getDuration(); } catch(e){}
+    const isAd = dur>0 && dur<100;
+    if(isAd){ rows[idx].cells[4].textContent='광고 대기…'; rows[idx].cells[4].className='ad'; }
+    if(st===1 && t>0.5 && !isAd){
+      clearInterval(timer);
+      const rec = window.__results.find(r=>r.id===ITEMS[idx].id);
+      if (rec){ rec.ok=true; rec.note='retry playing '+t.toFixed(1)+'s'; }
+      rows[idx].cells[4].textContent='OK · retry'; rows[idx].cells[4].className='ok';
+      const okc = window.__results.filter(r=>r.ok).length;
+      document.getElementById('sum').textContent = `재시도 중 · OK ${okc}/${ITEMS.length}`;
+      setTimeout(()=>retryNext(k+1), 250);
+    } else if (ms > TIMEOUT){
+      clearInterval(timer);
+      rows[idx].cells[4].textContent='FAIL · retry timeout'; rows[idx].cells[4].className='bad';
+      setTimeout(()=>retryNext(k+1), 250);
+    }
+  }, 250);
 }
 loadApi();
 </script>
