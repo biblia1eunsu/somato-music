@@ -85,8 +85,9 @@
     const master = ctx.createGain();
     master.gain.value = 0;
     const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -24; comp.knee.value = 26; comp.ratio.value = 2.6;
+    comp.threshold.value = -10; comp.knee.value = 18; comp.ratio.value = 3;
     comp.attack.value = 0.02; comp.release.value = 0.4;
+    const makeup = ctx.createGain(); makeup.gain.value = 2.6;
     const soft = ctx.createBiquadFilter();
     soft.type = 'lowpass'; soft.frequency.value = 7200; soft.Q.value = 0.4;
 
@@ -108,7 +109,7 @@
     this.mix.connect(reverb).connect(wet).connect(soft);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 1024;
-    soft.connect(comp).connect(master).connect(analyser).connect(ctx.destination);
+    soft.connect(makeup).connect(comp).connect(master).connect(analyser).connect(ctx.destination);
     this.analyser = analyser;
 
     this.noise = this._noiseBuffer(3);
