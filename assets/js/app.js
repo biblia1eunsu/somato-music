@@ -160,13 +160,14 @@
   }
   /* 오늘의 랜덤 추천 — 감성곡과 가사 없는 힐링곡이 번갈아 섞인 대기열 */
   function savaMixList() {
-    const song = shuffle(tracksFor('savasana:song'));
+    const song = tracksFor('savasana:song');   // 첫 곡은 큐레이션 순서(소향 Wind Song)를 지킵니다
     const calm = shuffle(tracksFor('savasana:piano')
       .concat(tracksFor('savasana:bowl'), tracksFor('savasana:vocal')));
-    const out = [];
-    const n = Math.max(song.length, calm.length);
+    const rest = shuffle(song.slice(1));
+    const out = [song[0]];
+    const n = Math.max(rest.length, calm.length);
     for (let i = 0; i < n; i++) {
-      if (song[i]) out.push(song[i]);
+      if (rest[i]) out.push(rest[i]);
       if (calm[i]) out.push(calm[i]);
     }
     return out;
@@ -685,8 +686,9 @@
     let desc = sec.desc;
     if (sec.id === 'flow') desc = FLOW_THEMES[state.theme].desc;
     if (sec.id === 'savasana') {
-      desc = (state.pool === 'random' ? '오늘의 랜덤 추천 · ' : '') +
-        SAVA_POOLS[state.pool === 'random' ? 'random' : state.pool].name;
+      desc = state.pool === 'random'
+        ? '감성곡 + 가사 없는 힐링곡이 번갈아 흐릅니다'
+        : SAVA_POOLS[state.pool].name;
     }
     $('#sectionDesc').textContent = desc;
     updateSegments(idx);
