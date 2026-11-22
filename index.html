@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="stylesheet" href="assets/css/style.css?v=11">
+<link rel="stylesheet" href="assets/css/style.css?v=12">
 <script>
 /* 진단용: 콘솔 오류를 조용히 모아 둡니다 (사용자 화면에는 영향 없음) */
 window.__somatoErrors = [];
@@ -35,7 +35,7 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
     <div class="topbar-actions">
       <button class="icon-btn" id="themeToggle" type="button" aria-label="라이트 · 다크 모드 전환">
         <svg class="ico ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
-        <svg class="ico ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.4 8.4 0 1 0 10.2 10.2Z"/><path d="M16.6 4.2v3M15.1 5.7h3"/></svg>
+        <svg class="ico ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 14.4A8.3 8.3 0 0 1 9.6 3.8a8.4 8.4 0 1 0 10.6 10.6Z"/></svg>
       </button>
       <button class="icon-btn" id="settingsBtn" type="button" aria-label="설정 열기">
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg>
@@ -216,7 +216,7 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
   </div>
 
   <h3 class="sheet-sub">유튜브 링크로 곡 추가</h3>
-  <p class="sheet-note">유튜브에서 곡을 열어 주소를 복사한 뒤 붙여 넣으세요. 이 기기에만 저장됩니다.<br>유튜브 광고가 나오는 동안에는 광고를 음소거하고 내장 사운드로 메웁니다.</p>
+  <p class="sheet-note">유튜브에서 곡을 열어 주소를 복사한 뒤 붙여 넣으세요. 이 기기에만 저장됩니다.<br>유튜브 광고가 나오면 광고가 재생됩니다. 광고 없는 수업을 원하시면 사운드 소스를 <b>내장 사운드</b>로 바꿔 주세요.</p>
   <div class="add-form">
     <select id="addSlot"></select>
     <input type="url" id="addUrl" placeholder="https://www.youtube.com/watch?v=..." inputmode="url" autocomplete="off">
@@ -234,8 +234,8 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div id="ytHost" aria-hidden="true"></div>
 
-<script src="assets/js/data.js?v=11"></script>
-<script src="assets/js/audio-engine.js?v=11"></script>
-<script src="assets/js/app.js?v=11"></script>
+<script src="assets/js/data.js?v=12"></script>
+<script src="assets/js/audio-engine.js?v=12"></script>
+<script src="assets/js/app.js?v=12"></script>
 </body>
 </html>
