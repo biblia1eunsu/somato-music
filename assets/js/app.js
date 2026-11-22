@@ -108,7 +108,7 @@
       { id: 'opening', name: '오프닝', en: 'OPENING', min: 15,
         desc: '호흡을 바닥으로 내려놓는 15분', texture: 'opening' },
       { id: 'breath', name: '호흡', en: 'BREATH', min: 3,
-        desc: '들이쉬고 내쉬는 3분, 피아노 한 곡', texture: 'breath' },
+        desc: '들이쉬고 내쉬는 3분, 긴 호흡의 음악', texture: 'breath' },
       { id: 'flow', name: '메인 플로우', en: 'MAIN FLOW', min: 30,
         desc: FLOW_THEMES[state.theme].desc, texture: FLOW_THEMES[state.theme].texture },
       { id: 'cooldown', name: '컴다운', en: 'COOLDOWN', min: 30,
@@ -1383,7 +1383,7 @@
     const parts = [
       { key: 'wait', title: '대기 음악', note: '수업 전과 수업 후에 흐르는 음악' },
       { key: 'opening', title: '오프닝', note: '15분 · 호흡을 바닥으로 내려놓는 시간' },
-      { key: 'breath', title: '호흡', note: '3분 · 들이쉬고 내쉬는 짧은 피아노' },
+      { key: 'breath', title: '호흡', note: '3분 · 호흡을 고요하게 내려놓는 음악' },
       { key: 'flow', title: '메인 플로우', note: '30분 · 고른 테마의 곡이 흐릅니다', subs: Object.keys(FLOW_THEMES) },
       { key: 'cooldown', title: '컴다운', note: '30분 · 심박을 천천히 가라앉히는 시간' },
       { key: 'savasana', title: '사바아사나', note: '5·10분 · 고른 풀의 곡이 흐릅니다. 랜덤 추천은 감성곡·건반·싱잉볼·만트라를 섞습니다', subs: Object.keys(SAVA_POOLS).filter((k) => k !== 'random') }
