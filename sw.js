@@ -1,17 +1,27 @@
-/* 소마토센서리 요가 클래스 플레이어 — 오프라인 앱 셸 */
-const CACHE = 'somato-music-v3';
+/* 소마토센서리 요가 클래스 플레이어 — 오프라인 앱 셸
+   버전을 올릴 때 아래 CACHE 이름과 index.html 의 ?v= 값을 함께 바꿉니다. */
+const VERSION = 'v3';
+const CACHE = 'somato-music-' + VERSION;
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './assets/css/style.css?v=3',
-  './assets/js/data.js?v=3',
-  './assets/js/audio-engine.js?v=3',
-  './assets/js/app.js?v=3',
+  './assets/css/style.css?v=' + VERSION.replace('v', ''),
+  './assets/js/data.js?v=' + VERSION.replace('v', ''),
+  './assets/js/audio-engine.js?v=' + VERSION.replace('v', ''),
+  './assets/js/app.js?v=' + VERSION.replace('v', ''),
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-180.png'
 ];
+
+const BASE = new URL('./', self.location.href).pathname;
+
+function isShell(url) {
+  const p = url.pathname;
+  if (p === BASE || p === BASE + 'index.html') return true;
+  return p.startsWith(BASE + 'assets/') || p.startsWith(BASE + 'icons/') || p === BASE + 'manifest.json';
+}
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -19,9 +29,9 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('somato-music-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
@@ -29,9 +39,8 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-
-  // 유튜브·외부 요청은 서비스 워커가 관여하지 않습니다.
-  if (url.origin !== location.origin) return;
+  if (url.origin !== location.origin) return;      // 유튜브 등 외부 요청은 그대로 통과
+  if (!isShell(url)) return;                        // 앱 셸 외 경로는 브라우저에 맡깁니다
 
   if (req.mode === 'navigate') {
     e.respondWith(
