@@ -256,7 +256,8 @@
     preId: '', preState: 'idle', preAt: 0, preTimer: null,
     waitTimer: null,              // 유튜브 준비를 기다리는 타이머
     adHold: false,                // 광고가 끝날 때까지 소리를 올리지 않습니다
-    troubleTries: 0               // 이 구간에서 재생에 실패한 횟수
+    troubleTries: 0,              // 이 구간에서 재생에 실패한 횟수
+    startBoxOn: false, boxTimer: null   // 수업 시작 때 잠깐 띄우는 유튜브 화면
   };
 
   function ensureAudio() {
@@ -408,6 +409,24 @@
     b.classList.toggle('is-builtin', builtin);
   }
 
+  /* 수업 첫 곡을 미리 열어 두지 못했을 때만, 시작 직후 잠깐 유튜브 화면을 작게 띄웁니다.
+     유튜브 프리롤 광고가 나오면 그 자리에서 '건너뛰기'를 누를 수 있게 하기 위해서입니다.
+     곡이 바로 흐르기 시작하면 1.5초 뒤 사라집니다. */
+  function showStartBox() {
+    const h = $('#ytHost');
+    if (!h) return;
+    h.classList.add('is-vis');
+    yt.startBoxOn = true;
+    clearTimeout(yt.boxTimer);
+    yt.boxTimer = setTimeout(hideStartBox, 20000);
+  }
+  function hideStartBox() {
+    clearTimeout(yt.boxTimer); yt.boxTimer = null;
+    yt.startBoxOn = false;
+    const h = $('#ytHost');
+    if (h) h.classList.remove('is-vis');
+  }
+
   /* ── 유튜브 감시 ──────────────────────────────
      광고 여부는 IFrame API가 알려주지 않습니다. 재생 길이(광고 ≤ 100초,
      수록곡 ≥ 3분)와 재생 중인 영상 ID로 판별합니다.
@@ -458,6 +477,7 @@
         try { yt.player.unMute(); } catch (e) {}
         ytFadeTo(outVolume(), yt.started ? 900 : 600);
         yt.started = true;
+        if (yt.startBoxOn) { yt.startBoxOn = false; setTimeout(hideStartBox, 1500); }
         clearInterval(yt.adTimer); yt.adTimer = null;
         clearTimeout(yt.watchdog); yt.watchdog = null;
       } else if (waited > 120000) {
@@ -1101,6 +1121,7 @@
     /* 대기 시간에 첫 곡을 미리 열어 두었는데 아직 프리롤 광고가 흐르고 있었다면,
        광고가 끝날 때까지는 소리를 올리지 않습니다(광고 소리가 수업에 섮지 않게). */
     yt.adHold = yt.preState === 'sweeping' && Date.now() - yt.preAt > 4000;
+    const prewarmed = yt.preState === 'ready';
     yt.preState = 'idle';
     showScreen('class');
     renderSegments();
@@ -1111,6 +1132,7 @@
     if (state.ambientOn) endAmbientSoft();   // 대기 음악은 3.5초에 걸쳐 줄어들고 수업 음악이 그 위에서 서서히 올라옵니다
     ensureAudio();
     ensureYT();
+    if (!prewarmed && state.sourceMode !== 'builtin') showStartBox();
     enterSection(0, { noChime: true });
     if (state.chime) setTimeout(() => chime(), 900);
     requestWake();
@@ -1123,6 +1145,7 @@
 
   function endClass() {
     clearInterval(tickTimer);
+    hideStartBox();
     if (pv.track) stopPreview(false);
     const total = planTotalMs();
     showScreen('done');
@@ -1153,6 +1176,7 @@
     const paused = $('#app').classList.contains('is-paused');
     if (!paused) {
       pausedAt = Date.now();
+      hideStartBox();
       $('#app').classList.add('is-paused');
       $('#playBtn').setAttribute('aria-label', '재생');
       $('#nowCard').classList.remove('is-playing');

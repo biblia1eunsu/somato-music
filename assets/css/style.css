@@ -440,6 +440,16 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
   opacity:1;pointer-events:auto;border-radius:12px;overflow:hidden;background:#000;
   box-shadow:var(--shadow);z-index:76;
 }
+/* v28d — 수업을 시작할 때 첫 곡을 미리 열어 두지 못했으면(대기 음악을 켜 둔 채 바로 시작 등)
+   잠시 유튜브 화면을 작게 띄워, 프리롤 광고가 나오면 그 자리에서 '건너뛰기'를 누를 수 있게 합니다.
+   곡이 바로 흐르면 2초 뒤 사라집니다. */
+#ytHost.is-vis{
+  left:50%;top:auto;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 72px);
+  width:min(320px,calc(100% - 64px));height:auto;aspect-ratio:16/9;
+  opacity:1;pointer-events:auto;border-radius:12px;overflow:hidden;background:#000;
+  box-shadow:var(--shadow);z-index:75;
+}
+#ytHost.is-vis>div,#ytHost.is-vis iframe{width:100%!important;height:100%!important;border:0}
 
 /* ── 선곡 관리 한 페이지 ─────────────────────────── */
 .playlist{
