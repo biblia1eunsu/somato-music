@@ -415,15 +415,16 @@
     const h = $('#ytHost');
     if (!h) return;
     h.classList.add('is-vis');
+    h.setAttribute('aria-hidden', 'false');
     yt.startBoxOn = true;
     clearTimeout(yt.boxTimer);
-    yt.boxTimer = setTimeout(hideStartBox, 45000);
+    yt.boxTimer = setTimeout(hideStartBox, 30000);
   }
   function hideStartBox() {
     clearTimeout(yt.boxTimer); yt.boxTimer = null;
     yt.startBoxOn = false;
     const h = $('#ytHost');
-    if (h) h.classList.remove('is-vis');
+    if (h) { h.classList.remove('is-vis'); h.setAttribute('aria-hidden', 'true'); }
   }
 
   /* ── 유튜브 감시 ──────────────────────────────
@@ -460,14 +461,6 @@
         try { yt.player.unMute(); } catch (e) {}
         ytFadeTo(outVolume(), yt.started ? 900 : 600);
         yt.started = true;
-        if (yt.startBoxOn) {
-          /* 곡이 처음(0초 부근)부터 흐르면 광고가 아니므로 잠시 뒤 화면을 닫습니다.
-             광고는 이미 재생 위치가 앞서 있어(건너뛰기·재생 위치) 화면을 그대로 두어 누를 수 있게 합니다. */
-          setTimeout(() => {
-            if (!yt.startBoxOn || !yt.player) return;
-            try { if ((yt.player.getCurrentTime() || 0) < 5) hideStartBox(); } catch (e) {}
-          }, 2500);
-        }
         clearInterval(yt.adTimer); yt.adTimer = null;
         clearTimeout(yt.watchdog); yt.watchdog = null;
       } else if (waited > 120000) {
@@ -1925,6 +1918,8 @@
       if (state.wake) requestWake(); else releaseWake();
     });
     /* ── 선곡 관리 ─────────────────────────────── */
+    const boxClose = $('#ytBoxClose');
+    if (boxClose) boxClose.addEventListener('click', hideStartBox);
     $('#playlistBtn').addEventListener('click', openPlaylist);
     $('#plClose').addEventListener('click', closePlaylist);
     $('#settingsPlaylistBtn').addEventListener('click', () => {

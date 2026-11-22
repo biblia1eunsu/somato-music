@@ -450,6 +450,12 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
   box-shadow:var(--shadow);z-index:75;
 }
 #ytHost.is-vis>div,#ytHost.is-vis iframe{width:100%!important;height:100%!important;border:0}
+#ytHost .yt-box-close{display:none}
+#ytHost.is-vis .yt-box-close{
+  display:block;position:absolute;right:6px;top:6px;width:28px;height:28px;border:0;border-radius:50%;
+  background:rgba(0,0,0,.55);color:#fff;font-size:13px;line-height:26px;text-align:center;z-index:3;
+  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+}
 
 /* ── 선곡 관리 한 페이지 ─────────────────────────── */
 .playlist{
