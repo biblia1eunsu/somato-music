@@ -442,10 +442,12 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
 }
 /* v28d — 수업을 시작할 때 첫 곡을 미리 열어 두지 못했으면(대기 음악을 켜 둔 채 바로 시작 등)
    잠시 유튜브 화면을 작게 띄워, 프리롤 광고가 나오면 그 자리에서 '건너뛰기'를 누를 수 있게 합니다.
-   곡이 바로 흐르면 2초 뒤 사라집니다. */
+   곡이 바로 흐르면 2.5초 뒤 사라지고, 광고일 때는 45초까지 남아 둡니다.
+   v29 — 오른쪽 아래 모서리로 옮기고 조금 작게 줄여 '수업 시작' 버튼을 가리지 않게 했습니다. */
 #ytHost.is-vis{
-  left:50%;top:auto;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 72px);
-  width:min(320px,calc(100% - 64px));height:auto;aspect-ratio:16/9;
+  left:auto;right:12px;top:auto;transform:none;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+  width:min(240px,66%);height:auto;aspect-ratio:16/9;
   opacity:1;pointer-events:auto;border-radius:12px;overflow:hidden;background:#000;
   box-shadow:var(--shadow);z-index:75;
 }

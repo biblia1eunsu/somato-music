@@ -411,6 +411,7 @@
     h.classList.add('is-vis');
     h.setAttribute('aria-hidden', 'false');
     yt.startBoxOn = true;
+    yt.boxShownAt = Date.now();
     clearTimeout(yt.boxTimer);
     yt.boxTimer = setTimeout(hideStartBox, 30000);
   }
@@ -457,6 +458,8 @@
         try { yt.player.unMute(); } catch (e) {}
         ytFadeTo(outVolume(), yt.started ? 900 : 600);
         yt.started = true;
+        /* 본 곡이 흐르기 시작했으면 작은 유튜브 화면은 2.5초 뒤 거둡니다 (광고 때는 위에서 45초로 늘립니다) */
+        if (yt.startBoxOn && Date.now() - (yt.boxShownAt || 0) > 2500) hideStartBox();
         clearInterval(yt.adTimer); yt.adTimer = null;
         clearTimeout(yt.watchdog); yt.watchdog = null;
       } else if (waited > 120000) {
@@ -1941,6 +1944,12 @@
     /* ── 선곡 관리 ─────────────────────────────── */
     const boxClose = $('#ytBoxClose');
     if (boxClose) boxClose.addEventListener('click', hideStartBox);
+    /* 작은 유튜브 화면 밖을 누르면 바로 거둡니다 — 버튼을 가리고 있을 때 한 번에 치울 수 있게 */
+    document.addEventListener('pointerdown', (e) => {
+      if (!yt.startBoxOn) return;
+      const h = $('#ytHost');
+      if (h && !h.contains(e.target)) hideStartBox();
+    }, true);
     const hf = $('#hardRefreshBtn');
     if (hf) hf.addEventListener('click', hardRefresh);
     const un = $('#updateNowBtn');
