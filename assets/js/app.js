@@ -251,7 +251,12 @@
     volume: 0,                    // 유튜브 플레이어가 지금 내는 볼륨(0~100)
     fadeTimer: null, adTimer: null, watchdog: null,
     transitionTimer: null, stopTimer: null, playTimer: null,
-    stallRetried: false, started: false
+    stallRetried: false, started: false,
+    /* 수업 첫 곡 미리 열기(프리롤 광고를 수업 전에 소리 없이 소진) */
+    preId: '', preState: 'idle', preAt: 0, preTimer: null,
+    waitTimer: null,              // 유튜브 준비를 기다리는 타이머
+    adHold: false,                // 광고가 끝날 때까지 소리를 올리지 않습니다
+    troubleTries: 0               // 이 구간에서 재생에 실패한 횟수
   };
 
   function ensureAudio() {
@@ -302,10 +307,10 @@
             try { yt.player.setVolume(0); yt.player.mute(); } catch (e) {}
             yt.volume = 0;
             setTimeout(ensurePreviewYT, 900);   // 미리듣기 플레이어도 앱을 열 때 함께 준비
-            warmFirstTrack();                    // 첫 대기곱 메타데이터를 미리 불러 둡니다
-            if (mode === 'class' && owner === 'builtin' && state.sourceMode !== 'builtin') {
+            warmFirstTrack();                    // 수업 첫 곡을 미리 열어 광고를 소진해 둡니다
+            if (mode === 'class' && owner !== 'youtube' && state.sourceMode !== 'builtin') {
               playSection(activeIndex, { soft: true });
-            } else if (mode === 'idle' && state.ambientOn && owner === 'builtin') {
+            } else if (mode === 'idle' && state.ambientOn) {
               playAmbient(true);
             }
           },
@@ -320,10 +325,10 @@
               yt.errors++;
               const cur = yt.queue[yt.qi];
               if (cur) cur.failed = true;
-              if (yt.errors >= 2) fallbackToBuiltin('유튜브 재생이 제한되어 내장 사운드로 이어갑니다.');
+              if (yt.errors >= 2) ytTrouble('유튜브가 이 곡의 재생을 막아 같은 구간의 다른 곡으로 넘어갑니다.');
               else nextTrack(true, { crossfade: false });
             } else {
-              fallbackToBuiltin('재생이 지연되어 내장 사운드로 이어갑니다.');
+              ytTrouble('이 곡을 재생하지 못해 같은 구간의 다른 곡으로 넘어갑니다.');
             }
           }
         }
@@ -396,6 +401,8 @@
     const builtin = kind === 'builtin' || kind === 'builtin-bodyscan';
     b.textContent =
       kind === 'ad' ? '광고 · 잠시 무음' :
+      kind === 'open' ? 'YouTube 여는 중' :
+      kind === 'off' ? 'YouTube 재생 불가' :
       kind === 'builtin-bodyscan' ? '내장 사운드 · 바디스캔' :
       builtin ? '내장 사운드' : 'YouTube';
     b.classList.toggle('is-builtin', builtin);
@@ -408,7 +415,7 @@
      (v23의 '광고 후 20초 → 내장 사운드' 규칙은 여기서 없앴습니다) */
   function watchPlayback() {
     clearInterval(yt.adTimer);
-    let waited = 0;
+    let waited = 0, maxCt = 0;
     yt.adTimer = setInterval(() => {
       if (owner !== 'youtube' || !yt.player) { clearInterval(yt.adTimer); yt.adTimer = null; return; }
       waited += 150;
@@ -427,6 +434,22 @@
         yt.volume = 0;
         setBadge('ad');
         return;
+      }
+      /* 수업 전에 미리 열어 둔 곡이 프리롤 광고 중이면, 광고가 끝날 때까지 소리를 올리지 않습니다.
+         IFrame API 는 광고 중에도 본 영상의 ID·길이를 돌려주기 때문에(실측) 재생 시간의 흐름으로 판별합니다.
+         · 광고가 끝나고 본 영상이 0초부터 흐르면 재생 시간이 뒤로 되돌아갑니다 → 그때 소리를 올립니다.
+         · 광고가 없었으면 state 가 1 이 되고 재생 시간이 3초 안쪽입니다 → 곧바로 올립니다. */
+      if (yt.adHold) {
+        maxCt = Math.max(maxCt, ct);
+        const rewound = maxCt > 5 && ct < maxCt - 5;
+        const musicNow = st === 1 && ct < 3;
+        if (!(rewound || musicNow || waited > 180000)) {
+          try { yt.player.setVolume(0); yt.player.mute(); } catch (e) {}
+          yt.volume = 0;
+          setBadge('ad');
+          return;
+        }
+        yt.adHold = false;
       }
       /* 재생 중인지 — 브라우저에 따라 상태값이 -1 로 남는 경우가 있어 재생 시간으로도 봅니다.
          소리는 본 영상이 흐르기 시작한 순간에 0.6초(첫 시작) / 0.9초(전환) 만에 올라옵니다. */
@@ -448,7 +471,7 @@
   }
 
   /* 재생이 실제로 시작되지 않았을 때만 다시 시도하고, 두 번째에도 안 되면
-     유튜브를 완전히 멈춘 뒤 내장 사운드로 넘어갑니다. */
+     유튜브 모드에서는 내장 사운드로 떨어지지 않고 같은 구간의 다음 곡으로 넘어갑니다. */
   function armWatchdog(ms) {
     clearTimeout(yt.watchdog);
     yt.watchdog = setTimeout(() => {
@@ -468,7 +491,7 @@
         armWatchdog(10000);
         return;
       }
-      fallbackToBuiltin('유튜브 재생이 지연되어 내장 사운드로 이어갑니다.');
+      ytTrouble('유튜브가 이 곡을 열지 못해 같은 구간의 다른 곡으로 넘어갑니다.');
     }, ms || 14000);
   }
 
@@ -503,20 +526,18 @@
         }
         yt.player.playVideo();       // 대기 없이 같은 제스처 안에서 바로
       } catch (e) {
-        fallbackToBuiltin('유튜브를 불러오지 못해 내장 사운드로 이어갑니다.');
+        ytTrouble('유튜브를 불러오지 못해 같은 구간의 다른 곡으로 넘어갑니다.');
         return;
       }
       armWatchdog(14000);
       watchPlayback();
     };
 
-    /* 지금 소리가 나고 있으면 먼저 3.5초에 걸쳐 줄인 뒤 새 곡이 0에서 올라옵니다 */
-    if (opts.crossfade !== false && yt.volume > 2) {
-      ytFadeTo(0, opts.fadeOut || FADE);
-      yt.transitionTimer = setTimeout(doLoad, (opts.fadeOut || FADE) + 150);
-    } else {
-      doLoad();
-    }
+    /* v28d — 새 곡은 언제나 누른 그 제스처 안에서 바로 불러옵니다.
+       예전에는 소리가 나고 있을 때 3.5초 페이드를 기다렸다가 불러왔는데,
+       그 3.65초 뒤에는 이미 제스처가 끝나 있어 iOS 가 재생을 막곤 했습니다
+       (그래서 감시기가 실패로 보고 내장 사운드로 떨어졌습니다). */
+    doLoad();
     return true;
   }
 
@@ -651,13 +672,35 @@
     $('#nextTitle').textContent = cur ? (cur.t || '—') : '—';
   }
 
-  /* 유튜브가 안 되면 유튜브를 완전히 멈추고 내장 사운드만 남깁니다 */
-  function fallbackToBuiltin(msg) {
+  /* 유튜브가 계속 열리지 않을 때 — 유튜브 모드에서는 내장 사운드로 마음대로 넘어가지 않고,
+     같은 구간의 다른 곡을 차례로 시도합니다. 모두 안 되면 무음으로 두고 화면에 분명히 알립니다
+     (은수 님이 직접 '내장 사운드' 칩을 눌렀을 때만 합성음이 나옵니다). */
+  function ytTrouble(msg) {
     const sec = plan[activeIndex] || {};
     clearYTTimers();
-    startBuiltin(sectionTexture(sec));
-    if (msg) toast(msg);
-    $('#footStatus').textContent = '내장 사운드 재생 중';
+    if (state.sourceMode === 'builtin') { startBuiltin(sectionTexture(sec)); return; }
+    const left = (yt.queue || []).filter((t) => !t.failed);
+    if (left.length && yt.troubleTries < 3) {
+      yt.troubleTries++;
+      const cur = yt.queue[yt.qi];
+      if (cur) cur.failed = true;
+      nextTrack(false, { crossfade: false });
+      if (msg) toast(msg);
+      return;
+    }
+    /* 이 구간의 모든 곡이 열리지 않았습니다 — 소리는 끄고 안내만 남깁니다 */
+    yt.volume = 0;
+    try { if (yt.player) { yt.player.setVolume(0); yt.player.mute(); yt.player.stopVideo(); } } catch (e) {}
+    owner = 'none';
+    setBadge('off');
+    $('#nowCard').classList.remove('is-playing');
+    $('#footStatus').textContent = 'YouTube 재생 불가 · 유튜브 칩을 누르면 내장 사운드로 들을 수 있어요';
+    toast('이 구간의 유튜브 곡을 열지 못했습니다. 내장 사운드로 들으시려면 아래 “유튜브” 칩을 눌러 주세요.');
+  }
+
+  /* 예전 이름 — 진단 도구(window.__somato.debug)가 부르던 함수입니다. 같은 경로로 이어 줍니다. */
+  function fallbackToBuiltin(msg) {
+    ytTrouble(msg);
   }
 
   function nextTrack(auto, opts) {
@@ -669,12 +712,13 @@
     } while (yt.queue[yt.qi].failed && guard < yt.queue.length);
 
     const cur = yt.queue[yt.qi];
-    if (!cur || cur.failed) { fallbackToBuiltin(); return; }
-    if (state.sourceMode === 'builtin' || !yt.ready) {
+    if (!cur || cur.failed) { ytTrouble(); return; }
+    if (state.sourceMode === 'builtin') {
       const sec = plan[activeIndex] || {};
       startBuiltin(sectionTexture(sec));
       return;
     }
+    if (!yt.ready) { waitForYT(yt.currentKey); return; }
     ytPlayTrack(cur, opts || (auto ? { crossfade: false } : {}));
     renderNext();
   }
@@ -682,11 +726,12 @@
     if (yt.queue.length === 0) return;
     yt.qi = (yt.qi - 1 + yt.queue.length) % yt.queue.length;
     const cur = yt.queue[yt.qi];
-    if (state.sourceMode === 'builtin' || !yt.ready) {
+    if (state.sourceMode === 'builtin') {
       const sec = plan[activeIndex] || {};
       startBuiltin(sectionTexture(sec));
       return;
     }
+    if (!yt.ready) { waitForYT(yt.currentKey); return; }
     ytPlayTrack(cur, { crossfade: true });
   }
 
@@ -698,12 +743,13 @@
       toast('바디스캔 사운드를 새로 시작합니다.');
       return;
     }
-    if (state.sourceMode === 'builtin' || !yt.ready || owner === 'builtin') {
+    if (state.sourceMode === 'builtin' || owner === 'builtin') {
       const sec = plan[activeIndex] || {};
       startBuiltin(sectionTexture(sec));
       toast('새 연주로 바뀝니다.');
       return;
     }
+    if (!yt.ready) { waitForYT(yt.currentKey); return; }
     if (yt.queue.length < 2) {
       const sec = plan[activeIndex] || {};
       startBuiltin(sectionTexture(sec));
@@ -721,10 +767,10 @@
     yt.queue = list;
     yt.qi = 0;
     yt.errors = 0;
+    yt.troubleTries = 0;
 
     if (yt.queue.length === 0) {
-      const sec = plan[activeIndex] || {};
-      startBuiltin(sectionTexture(sec));
+      toast('이 구간에 재생할 곡이 없습니다. 선곡 관리에서 곡을 되돌려 주세요.');
       return;
     }
     if (state.sourceMode === 'builtin') {
@@ -733,10 +779,10 @@
       renderNext();
       return;
     }
+    /* 유튜브 모드에서는 준비가 늦다고 내장 사운드를 켜지 않습니다 —
+       준비될 때까지 기다렸다가 선곡한 곡을 그대로 시작합니다. */
     if (!yt.ready) {
-      const sec = plan[activeIndex] || {};
-      startBuiltin(sectionTexture(sec));
-      ensureYT();
+      waitForYT(key);
       renderNext();
       return;
     }
@@ -744,23 +790,85 @@
     renderNext();
   }
 
+  /* 유튜브 플레이어가 아직 준비되지 않았을 때 — 내장 사운드 대신 잠시 기다렸다가 재생합니다. */
+  function waitForYT(key) {
+    clearInterval(yt.waitTimer); yt.waitTimer = null;
+    setBadge('open');
+    $('#footStatus').textContent = 'YouTube 연결 중';
+    ensureYT();
+    let waited = 0;
+    yt.waitTimer = setInterval(() => {
+      if (mode !== 'class') { clearInterval(yt.waitTimer); yt.waitTimer = null; return; }
+      if (yt.ready) {
+        clearInterval(yt.waitTimer); yt.waitTimer = null;
+        playPool(key || yt.currentKey);
+        return;
+      }
+      waited += 250;
+      if (waited > 12000) {
+        clearInterval(yt.waitTimer); yt.waitTimer = null;
+        setBadge('off');
+        $('#footStatus').textContent = 'YouTube 연결 안 됨 · 다시 시도합니다';
+        toast('YouTube를 열지 못해 다시 시도하고 있습니다. 내장 사운드로 들으시려면 아래 “유튜브” 칩을 눌러 주세요.');
+        setTimeout(() => { if (mode === 'class' && !yt.ready) waitForYT(yt.currentKey); }, 3000);
+      }
+    }, 250);
+  }
+
   /* 대기 음악 — 고정한 곡(첫 곡)이 있으면 그 순서를 지키고 그 뒤만 섞습니다 */
   function waitList() {
     return queuedList('wait');
   }
 
-  /* 앱을 열어 둔 사이 첫 대기곱의 메타데이터를 미리 불러 둡니다 (재생은 하지 않음).
-     '대기 음악'을 눌렀을 때 영상을 새로 불러오는 시간 없이 바로 시작되도록. */
+  /* ── 수업 첫 곡 미리 열기 (v28d) ─────────────────
+     앱을 열어 둔 대기 시간에 수업 첫 곡을 소리 없이(음소거) 미리 열어 둡니다.
+     유튜브 프리롤 광고는 영상을 새로 열 때 붙는데, 그 광고를 수업 전에 미리 소진해 두면
+     '수업 시작'을 누른 순간 선곡 1번 곡이 광고 없이 바로 흐릅니다.
+     (예전에는 대기곡을 cue 만 해 두었습니다) */
   function warmFirstTrack() {
     if (!yt.player || !yt.ready) return;
     if (owner === 'youtube' || mode !== 'idle' || state.ambientOn) return;
-    const t = waitList()[0];
+    if (state.sourceMode === 'builtin') return;
+    const t = queuedList('opening')[0];
     if (!t || !t.y) return;
+    if (yt.preId === t.y && yt.preState !== 'idle') return;
+    yt.preId = t.y;
+    yt.preState = 'sweeping';
+    yt.preAt = Date.now();
+    try { yt.player.mute(); yt.player.setVolume(0); } catch (e) {}
+    yt.volume = 0;
     try {
-      const vd = yt.player.getVideoData ? (yt.player.getVideoData() || {}) : {};
-      if (vd.video_id === t.y) return;
-      yt.player.cueVideoById({ videoId: t.y });
-    } catch (e) {}
+      yt.player.loadVideoById({ videoId: t.y, startSeconds: 0 });
+      yt.player.playVideo();
+    } catch (e) { yt.preState = 'idle'; return; }
+    watchPrewarm();
+  }
+
+  /* 광고 중에는 state 가 -1 로 남습니다(실측). 본 영상이 흐르기 시작해 state 가 1 이 되면
+     바로 멈추고 처음으로 돌려 둡니다 — 그 상태에서 '수업 시작'을 누르면 광고 없이 바로 재생됩니다. */
+  function watchPrewarm() {
+    clearInterval(yt.preTimer);
+    yt.preTimer = setInterval(() => {
+      if (yt.preState !== 'sweeping' || !yt.player) { clearInterval(yt.preTimer); yt.preTimer = null; return; }
+      if (mode !== 'idle' || state.ambientOn || owner === 'youtube') {
+        clearInterval(yt.preTimer); yt.preTimer = null; yt.preState = 'idle'; return;
+      }
+      let st = -1;
+      try { st = yt.player.getPlayerState(); } catch (e) { return; }
+      if (st === 1) {
+        try { yt.player.pauseVideo(); yt.player.setVolume(0); yt.player.mute(); } catch (e) {}
+        try { yt.player.seekTo(0, true); } catch (e) {}
+        yt.volume = 0;
+        yt.preState = 'ready';
+        clearInterval(yt.preTimer); yt.preTimer = null;
+        return;
+      }
+      if (Date.now() - yt.preAt > 300000) {     // 5분이 지나도 광고가 끝나지 않으면 손을 뗍니다
+        try { yt.player.pauseVideo(); } catch (e) {}
+        yt.preState = 'idle';
+        clearInterval(yt.preTimer); yt.preTimer = null;
+      }
+    }, 500);
   }
 
   function playAmbient(resume) {
@@ -768,12 +876,24 @@
     $('#ambientBtn').setAttribute('aria-pressed', 'true');
     $('#ambientBtnLabel').textContent = '대기 음악 끄기';
     $('#footStatus').textContent = '대기 음악 재생 중';
-    if (state.sourceMode === 'builtin' || !yt.ready) {
+    if (state.sourceMode === 'builtin') {
       if (owner === 'builtin' && audio && audio.playing && resume) return;
       startBuiltin('waiting', { t: '대기 음악', a: '맑은 하프 아르페지오' });
-      ensureYT();
       return;
     }
+    /* 유튜브가 아직 준비되지 않았으면 내장 사운드 대신 잠시 기다렸다가 대기 곡을켜줍니다 */
+    if (!yt.ready) {
+      ensureYT();
+      yt.waitTries = (yt.waitTries || 0) + 1;
+      if (yt.waitTries <= 20) {
+        setTimeout(() => { if (state.ambientOn && mode !== 'class') playAmbient(resume); }, 400);
+        return;
+      }
+      startBuiltin('waiting', { t: '대기 음악', a: '맑은 하프 아르페지오' });
+      toast('YouTube를 열지 못해 대기 음악을 내장 사운드로 켰습니다.');
+      return;
+    }
+    yt.waitTries = 0;
     const list = waitList();
     if (!list.length) { startBuiltin('waiting'); return; }
     yt.queue = list; yt.qi = 0; yt.currentKey = 'wait';
@@ -815,7 +935,12 @@
     $('#footStatus').textContent = '대기 중';
     fadeOutAll(fadeMs || FADE);
     yt.queue = [];
+    yt.adHold = false;
     $('#nowCard') && $('#nowCard').classList.remove('is-playing');
+    /* 대기 음악을 끄면 수업 첫 곡을 다시 미리 열어 둘 수 있습니다 (곧 수업을 시작할 때 광고가 끼지 않게) */
+    yt.preState = 'idle';
+    clearTimeout(yt.preTimer);
+    setTimeout(() => { if (mode === 'idle' && !state.ambientOn) warmFirstTrack(); }, 2400);
   }
 
   /* ── 수업 진행 ──────────────────────────────── */
@@ -970,6 +1095,13 @@
     if (pv.track) stopPreview(false);
     plan = buildPlan();
     yt.errors = 0;
+    yt.troubleTries = 0;
+    clearInterval(yt.waitTimer); yt.waitTimer = null;
+    clearInterval(yt.preTimer); yt.preTimer = null;
+    /* 대기 시간에 첫 곡을 미리 열어 두었는데 아직 프리롤 광고가 흐르고 있었다면,
+       광고가 끝날 때까지는 소리를 올리지 않습니다(광고 소리가 수업에 섮지 않게). */
+    yt.adHold = yt.preState === 'sweeping' && Date.now() - yt.preAt > 4000;
+    yt.preState = 'idle';
     showScreen('class');
     renderSegments();
     startedAt = Date.now(); pausedTotal = 0; pausedAt = 0;
@@ -985,7 +1117,7 @@
     clearInterval(tickTimer);
     tickTimer = setInterval(tick, 400);
     tick();
-    $('#footStatus').textContent = '수업 진행 중';
+    $('#footStatus').textContent = yt.adHold ? '광고가 끝나면 선곡한 음악이 흐릅니다' : '수업 진행 중';
     savePrefs();
   }
 
@@ -996,6 +1128,9 @@
     showScreen('done');
     if (bodyscanOn) setBodyscan(false, { quiet: true, skipResume: true });
     fadeOutAll(1800);
+    yt.adHold = false;
+    yt.preState = 'idle';
+    clearInterval(yt.waitTimer); yt.waitTimer = null;
     releaseWake();
     if (state.chime) setTimeout(() => chime(), 300);
     $('#doneStats').innerHTML =
@@ -1033,9 +1168,11 @@
       $('#nowCard').classList.add('is-playing');
       if (bodyscanOn) {
         startBuiltin('bodyscan', { t: '바디스캔 명상', a: '아주 낮은 울림 · 숨결' });
-      } else if (owner === 'builtin' || state.sourceMode === 'builtin' || !yt.ready) {
+      } else if (owner === 'builtin' || state.sourceMode === 'builtin') {
         const sec = plan[activeIndex];
         startBuiltin(sectionTexture(sec));
+      } else if (!yt.ready) {
+        waitForYT(yt.currentKey);
       } else if (yt.player) {
         try { yt.player.playVideo(); } catch (e) {}
       }
@@ -1843,6 +1980,9 @@
       showScreen('idle');
       document.title = '소마토센서리 요가 · 클래스 음악';
       renderIdlePlan(); renderIdleChoices();
+      yt.adHold = false;
+      yt.preState = 'idle';
+      setTimeout(warmFirstTrack, 500);
     });
 
     document.addEventListener('visibilitychange', () => {

@@ -16,7 +16,7 @@ window.SOMATO_DATA = {
     /* 수업 전 · 수업 후 대기 — Peder B. Helland · Lisa Swerdlow · Nakamura Yuriko · 이루마 */
     wait: [
       { t: "Relaxing Music for Stress Relief", a: "Spiritual Moment", y: "525KKRd_6Yo" },
-      { t: "432 Hz Deep Sleep Music Delta Waves", a: "Spiritual Moment", y: "8IERVdxTNBg" },
+      { t: "Spiritual Meditation", a: "Spiritual Moment", y: "8IERVdxTNBg" },
       { t: "Sunny Mornings", a: "Peder B. Helland", y: "_lhbeLfLwYQ" },
       { t: "Peaceful Day", a: "Peder B. Helland", y: "Xg-YcVVDqdw" },
       { t: "All Is Not Lost", a: "Lisa Swerdlow", y: "7R3H1fT1BHQ" },
