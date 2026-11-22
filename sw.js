@@ -1,13 +1,13 @@
 /* 소마토센서리 요가 클래스 플레이어 — 오프라인 앱 셸 */
-const CACHE = 'somato-music-v1';
+const CACHE = 'somato-music-v3';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './assets/css/style.css',
-  './assets/js/data.js',
-  './assets/js/audio-engine.js',
-  './assets/js/app.js',
+  './assets/css/style.css?v=3',
+  './assets/js/data.js?v=3',
+  './assets/js/audio-engine.js?v=3',
+  './assets/js/app.js?v=3',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-180.png'
