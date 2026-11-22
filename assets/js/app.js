@@ -600,13 +600,13 @@
     if (state.sourceMode === 'builtin' || !yt.ready || yt.playingBuiltin) {
       const sec = plan[activeIndex] || {};
       startBuiltin(sectionTexture(sec));
-      toast('다른 곡으로 바뀍니다.');
+      toast('새 연주로 바뀝니다.');
       return;
     }
     if (yt.queue.length < 2) {
       const sec = plan[activeIndex] || {};
       startBuiltin(sectionTexture(sec));
-      toast('이 구간의 다른 곡으로 바뀍니다.');
+      toast('이 구간의 새 연주로 바뀝니다.');
       return;
     }
     nextTrack(false, { crossfade: true });
