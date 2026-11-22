@@ -31,7 +31,7 @@ td,th{border-bottom:1px solid #262626;padding:4px 6px;text-align:left;vertical-a
 <div id="player"></div>
 <script>
 const ITEMS = __ITEMS__;
-const TIMEOUT = 24000;
+const TIMEOUT = 40000;
 window.__results = [];
 window.__done = false;
 let player = null, idx = 0, timer = null, startAt = 0, retryQueue = [], retriesLeft = [];
