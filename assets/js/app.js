@@ -842,7 +842,7 @@
       }
       tick();
     }
-    toast('사바아사나 ' + min + '분으로 맞줬습니다.');
+    toast('사바아사나 ' + min + '분으로 맞췄습니다.');
   }
 
   function savaDesc() {
