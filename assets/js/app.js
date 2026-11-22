@@ -840,7 +840,7 @@
       }
       tick();
     }
-    toast('사바아사나 ' + min + '분으로 맞쳤습니다.');
+    toast('사바아사나 ' + min + '분으로 맞줬습니다.');
   }
 
   function savaDesc() {
@@ -1130,7 +1130,7 @@
      그래서 미리듣기끼리, 수업 음악과 겹쳐 소리가 나는 일이 없습니다. */
   const pv = {
     player: null, ready: false, track: '', key: '', pending: '', playing: false,
-    fade: null, watchdog: null, wait: null, vol: 0, restore: null
+    fade: null, watchdog: null, wait: null, adTimer: null, ad: false, vol: 0, restore: null
   };
 
   function ensurePreviewYT() {
@@ -1227,6 +1227,7 @@
     } catch (e) { previewFailed(); return; }
     setTimeout(() => { try { pv.player.playVideo(); } catch (e) {} }, 260);
     pvFadeTo(state.volume, 900);
+    watchPreviewAd();
     pv.watchdog = setTimeout(() => {
       if (pv.playing) return;
       let st = -1, ct = 0, dur = 0;
@@ -1238,6 +1239,31 @@
       if (st === 1 || ct > 1 || dur > 0) { pv.playing = true; syncPreviewUI(); return; }
       previewFailed();
     }, 9000);
+  }
+
+  /* 미리듣기도 광고는 조용하게 — 광고(100초 이하) 동안은 무음으로 두고
+     본 음악이 시작되면 그때 볼륨을 올립니다 (수업 재생과 같은 규칙) */
+  function watchPreviewAd() {
+    clearInterval(pv.adTimer);
+    pv.ad = false;
+    pv.adTimer = setInterval(() => {
+      if (!pv.player || !pv.track) { clearInterval(pv.adTimer); pv.adTimer = null; return; }
+      let dur = 0;
+      try { dur = pv.player.getDuration() || 0; } catch (e) { return; }
+      if (dur > 0 && dur < 100) {
+        if (pv.vol > 0) {
+          clearInterval(pv.fade);
+          pv.fade = null;
+          pv.vol = 0;
+          try { pv.player.setVolume(0); } catch (e) {}
+        }
+        pv.ad = true;
+      } else if (dur >= 100) {
+        if (pv.ad) { pv.ad = false; pvFadeTo(state.volume, 1200); }
+        clearInterval(pv.adTimer);
+        pv.adTimer = null;
+      }
+    }, 500);
   }
 
   function pvFadeTo(target, ms) {
@@ -1258,6 +1284,8 @@
   function stopPreview(restore) {
     clearTimeout(pv.watchdog);
     clearInterval(pv.fade);
+    clearInterval(pv.adTimer);
+    pv.adTimer = null; pv.ad = false;
     pv.playing = false; pv.track = ''; pv.pending = '';
     if (pv.player) {
       try { pv.player.setVolume(0); pv.player.mute(); pv.player.stopVideo(); } catch (e) {}
@@ -1270,6 +1298,8 @@
   function previewEnded() {
     clearTimeout(pv.watchdog);
     clearInterval(pv.fade);
+    clearInterval(pv.adTimer);
+    pv.adTimer = null; pv.ad = false;
     pv.playing = false; pv.track = ''; pv.pending = '';
     syncPreviewUI();
     resumeAfterPreview();
@@ -1278,6 +1308,8 @@
   function previewFailed() {
     clearTimeout(pv.watchdog);
     clearInterval(pv.fade);
+    clearInterval(pv.adTimer);
+    pv.adTimer = null; pv.ad = false;
     pv.playing = false; pv.track = ''; pv.pending = '';
     if (pv.player) { try { pv.player.stopVideo(); } catch (e) {} }
     syncPreviewUI();
