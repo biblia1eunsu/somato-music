@@ -1793,6 +1793,7 @@
     renderPlaylist();
     const el = $('#playlistView');
     el.hidden = false;
+    markNowPlaying();          // 화면을 연 뒤에 표시해야 '재생 중' 자리가 보입니다
     requestAnimationFrame(() => el.classList.add('is-open'));
   }
 
