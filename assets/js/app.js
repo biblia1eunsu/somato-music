@@ -917,6 +917,7 @@
     const list = waitList();
     if (!list.length) { startBuiltin('waiting'); return; }
     yt.queue = list; yt.qi = 0; yt.currentKey = 'wait';
+    showStartBox();          // 광고가 나오면 바로 건너뛸 수 있게 잠깐 화면을 띄웁니다
     ytPlayTrack(list[0]);
     renderNext();
   }
@@ -956,6 +957,7 @@
     fadeOutAll(fadeMs || FADE);
     yt.queue = [];
     yt.adHold = false;
+    hideStartBox();
     $('#nowCard') && $('#nowCard').classList.remove('is-playing');
     /* 대기 음악을 끄면 수업 첫 곡을 다시 미리 열어 둘 수 있습니다 (곧 수업을 시작할 때 광고가 끼지 않게) */
     yt.preState = 'idle';
