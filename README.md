@@ -8,7 +8,7 @@
 
 | 구간 | 시간 | 내용 |
 | --- | --- | --- |
-| 대기 음악 | 수업 전·후 | 이루마 · 리정혁 · Lisa Swerdlow · Fiona Joy Hawkins |
+| 대기 음악 | 수업 전·후 | **Spiritual Moment** Relaxing Music for Stress Relief(1번 고정) · Lisa Swerdlow · Fiona Joy Hawkins · 이루마 · 리정혁 |
 | 오프닝 | 15분 | 호흡 · 그라운딩 (Yoga · Parijat · Argon Riffer · Deuter · Liquid Mind) |
 | 호흡 | 3분 | 호흡을 길고 고요하게 내려놓는 음악 (Deuter 플룻·앰비언트, Liquid Mind, Kevin MacLeod 느린 피아노) |
 | 메인 플로우 | 30분 | 플로우 테마 4종 |

@@ -3,22 +3,25 @@
    · 지니 뮤직 · 사운드클라우드 캡처(2026-11-22 전달)의 곡을 구간마다 가장 먼저 배치했습니다
    · 모든 YouTube ID는 실제 IFrame 플레이어로 임베드를 검사했습니다
      (Error 101 · 150 · 2 · 5 · 100 — 0건, tools/verify7.html)
-   · 1시간짜리 모음 · 분위기가 튀는 실험적 앰비언트 · 저음질 비공식 업로드는 걷어냈습니다
+   · 대기 음악 1번은 은수 님이 지정한 Spiritual Moment 스트레스 릴리프 (1시간 2분, 공식 Topic 채널)
+   · 그 밖의 1시간짜리 모음 · 분위기가 튀는 실험적 앰비언트 · 저음질 비공식 업로드는 걷어냈습니다
    ───────────────────────────────────────────────────────────── */
 window.SOMATO_DATA = {
-  version: '5.0.0',
+  version: '5.0.1',
 
   tracks: {
     /* 수업 전 · 수업 후 대기 — 이루마 · 리정혁 · Lisa Swerdlow · Fiona Joy Hawkins */
     wait: [
-      { t: "Kiss the Rain", a: "이루마 Yiruma", y: "imGaOIm5HOk" },
-      { t: "piano for brother (형을 위한 노래)", a: "리정혁 Lee Jeonghyeok", y: "SmDD-3C5PNY" },
+      /* 1번 고정 — 은수 님이 지정한 사운드클라우드 플레이리스트의 Spiritual Moment 스트레스 릴리프 (1시간 2분, 임베드 검증 완료) */
+      { t: "Relaxing Music for Stress Relief", a: "Spiritual Moment", y: "525KKRd_6Yo" },
       { t: "All Is Not Lost", a: "Lisa Swerdlow", y: "7R3H1fT1BHQ" },
       { t: "Grace", a: "Fiona Joy Hawkins", y: "iqkgLhRThIE" },
       { t: "Falling Asleep", a: "Essie Jain", y: "78tD9QH1J2Q" },
       { t: "Amazing Space", a: "Kristin Hoffmann", y: "AQS8bh7Q7TI" },
       { t: "Wild Mountainside", a: "Ashley Davis", y: "J2-QVo4YWdU" },
       { t: "Lights", a: "Arnaud Gauthier", y: "uHB1Azyfd0g" },
+      { t: "Kiss the Rain", a: "이루마 Yiruma", y: "imGaOIm5HOk" },
+      { t: "piano for brother (형을 위한 노래)", a: "리정혁 Lee Jeonghyeok", y: "SmDD-3C5PNY" },
       { t: "Return to the Heart", a: "David Lanz", y: "ESqHYfdDm7c" },
       { t: "River Flows in You", a: "이루마 Yiruma", y: "7maJOI3QMu0" },
       { t: "Blue Dream", a: "Fiona Joy Hawkins", y: "LdlKL_ArHaY" }
