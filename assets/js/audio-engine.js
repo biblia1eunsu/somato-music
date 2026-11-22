@@ -620,10 +620,10 @@
     if (cfg.drone) {
       // 바디스캔 — 아주 낮은 세 음의 드론과 아주 느린 숨결
       const bus = ctx.createGain();
-      bus.gain.value = 0.42;
+      bus.gain.value = 0.26;
       bus.connect(deck.out);
       const base = mtof(cfg.chords[0][0] - 12);
-      [[1, 0.32], [1.5, 0.07], [2, 0.03]].forEach(([mult, amp]) => {
+      [[1, 0.22], [1.5, 0.05], [2, 0.02]].forEach(([mult, amp]) => {
         const o = ctx.createOscillator();
         o.type = 'sine';
         o.frequency.value = base * mult;
