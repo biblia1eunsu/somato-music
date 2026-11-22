@@ -501,6 +501,9 @@
       keepAlive.setAttribute('playsinline', '');
       keepAlive.setAttribute('webkit-playsinline', '');
       keepAlive.autoplay = true;
+      keepAlive.setAttribute('aria-hidden', 'true');
+      keepAlive.style.display = 'none';
+      document.body.appendChild(keepAlive);   // iOS 오디오 세션을 위해 문서에 붙여 둡니다
       keepAlive.addEventListener('playing', () => {
         try { eng.useElement(true); } catch (e) {}   // 엘리먼트가 소리를 내기 시작하면 직접 출력은 겹치지 않게 끕니다
       }, { once: true });
@@ -830,6 +833,27 @@
     wrap.innerHTML = Object.keys(SAVA_POOLS).map((k) =>
       `<button type="button" class="sava-chip ${state.pool === k ? 'is-on' : ''}" data-pool="${k}">${SAVA_POOLS[k].short}</button>`
     ).join('');
+  }
+
+  /* ── 바디스캔 명상 — 안내하시는 동안 잔잔한 사운드만 ── */
+  function setBodyscan(on, opts) {
+    opts = opts || {};
+    if (bodyscanOn === on && !opts.force) return;
+    bodyscanOn = on;
+    ['#scanPill', '#bodyscanBtn'].forEach((sel) => {
+      const el = $(sel);
+      if (el) el.setAttribute('aria-pressed', String(on));
+    });
+    if (on) {
+      startBuiltin('bodyscan', { t: '바디스캔 명상', a: '가사 없는 낮은 드론 · 숨결' });
+      $('#footStatus').textContent = '바디스캔 명상 사운드';
+      if (!opts.quiet) toast('바디스캔 명상 사운드가 흐릅니다. 끄려면 한 번 더 눌러 주세요.');
+    } else {
+      if (!opts.skipResume && mode === 'class' && plan[activeIndex]) {
+        playSection(activeIndex);
+        $('#footStatus').textContent = '수업 진행 중';
+      }
+    }
   }
 
   /* ── 시트 ───────────────────────────────────── */
