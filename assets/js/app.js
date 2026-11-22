@@ -504,7 +504,7 @@
 
   function updateSourcePill() {
     const builtin = state.sourceMode === 'builtin';
-    $('#sourcePill').setAttribute('aria-pressed', String(builtin));
+    $('#sourcePill').setAttribute('aria-pressed', String(!builtin));
     $('#sourcePillLabel').textContent = builtin ? '내장 사운드' : '유튜브';
   }
 
