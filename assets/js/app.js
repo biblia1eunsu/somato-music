@@ -247,25 +247,69 @@
 
   function clearWatchdog() { clearTimeout(yt.watchdog); yt.watchdog = null; }
 
+  /* 광고가 나오면 음소거한 채 내장 사운드로 메우고, 본 영상이 시작되면 다시 음악으로 */
+  function watchAd() {
+    clearInterval(yt.adTimer);
+    yt.adActive = false;
+    let waited = 0;
+    yt.adTimer = setInterval(() => {
+      waited += 500;
+      let id = '', st = -1;
+      try {
+        const vd = yt.player.getVideoData();
+        id = (vd && vd.video_id) || '';
+        st = yt.player.getPlayerState();
+      } catch (e) {}
+      const isAd = !!id && id !== yt.expected;
+
+      if (isAd) {
+        try { yt.player.setVolume(0); } catch (e) {}
+        if (!yt.adBuiltin) {
+          yt.adBuiltin = true;
+          const sec = plan[activeIndex] || {};
+          const eng = ensureAudio();
+          yt.playingBuiltin = true;
+          eng.start(sec.texture || 'waiting', {});
+          $('#sourceBadge').textContent = '광고 · 내장 사운드';
+          $('#sourceBadge').classList.add('is-builtin');
+        }
+      } else if (yt.adBuiltin && id === yt.expected && (st === 1 || st === 3)) {
+        yt.adBuiltin = false;
+        if (audio && audio.playing) audio.stop(1.4);
+        yt.playingBuiltin = false;
+        ytFadeTo(state.volume, 1600);
+        $('#sourceBadge').textContent = 'YouTube';
+        $('#sourceBadge').classList.remove('is-builtin');
+        clearInterval(yt.adTimer);
+      }
+      if (waited > 150000) { clearInterval(yt.adTimer); yt.adBuiltin = false; }
+    }, 500);
+  }
+
   function ytPlayTrack(track) {
     if (!track || !track.y || !yt.player || !yt.ready) return false;
     yt.playingBuiltin = false;
+    yt.expected = track.y;
+    yt.adBuiltin = false;
     stopBuiltin();
-    ytFadeTo(0, 900);
+    ytFadeTo(0, 700);
     clearWatchdog();
     yt.watchdog = setTimeout(() => {
       try {
+        const ct = yt.player.getCurrentTime();
         const st = yt.player.getPlayerState();
-        if (st !== 1 && st !== 3) { yt.errors++; nextTrack(true); }
+        if (ct > 0.5 || st === 3) return;   // 재생·버퍼링 중이면 기다립니다
+        yt.errors++;
+        nextTrack(true);
       } catch (e) {}
-    }, 11000);
+    }, 20000);
     try {
       yt.player.loadVideoById({ videoId: track.y, startSeconds: 0 });
       setTimeout(() => {
         try { yt.player.setVolume(0); yt.player.playVideo(); } catch (e) {}
-        ytFadeTo(state.volume, 1500);
       }, 380);
     } catch (e) { return false; }
+    watchAd();
     renderNow(track);
     $('#sourceBadge').textContent = 'YouTube';
     $('#sourceBadge').classList.remove('is-builtin');

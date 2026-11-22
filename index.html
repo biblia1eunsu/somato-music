@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="stylesheet" href="assets/css/style.css?v=5">
+<link rel="stylesheet" href="assets/css/style.css?v=6">
 <script>
 /* 진단용: 콘솔 오류를 조용히 모아 둡니다 (사용자 화면에는 영향 없음) */
 window.__somatoErrors = [];
@@ -213,7 +213,7 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
   </div>
 
   <h3 class="sheet-sub">유튜브 링크로 곡 추가</h3>
-  <p class="sheet-note">유튜브에서 곡을 열어 주소를 복사한 뒤 붙여 넣으세요. 이 기기에만 저장됩니다.</p>
+  <p class="sheet-note">유튜브에서 곡을 열어 주소를 복사한 뒤 붙여 넣으세요. 이 기기에만 저장됩니다.<br>유튜브 광고가 나오는 동안에는 광고를 음소거하고 내장 사운드로 메웁니다.</p>
   <div class="add-form">
     <select id="addSlot"></select>
     <input type="url" id="addUrl" placeholder="https://www.youtube.com/watch?v=..." inputmode="url" autocomplete="off">
@@ -231,8 +231,8 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div id="ytHost" aria-hidden="true"></div>
 
-<script src="assets/js/data.js?v=5"></script>
-<script src="assets/js/audio-engine.js?v=5"></script>
-<script src="assets/js/app.js?v=5"></script>
+<script src="assets/js/data.js?v=6"></script>
+<script src="assets/js/audio-engine.js?v=6"></script>
+<script src="assets/js/app.js?v=6"></script>
 </body>
 </html>
