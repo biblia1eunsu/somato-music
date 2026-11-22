@@ -131,7 +131,7 @@ html[data-theme="dark"] .ico-sun{display:none}
 .plan .p-time{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;letter-spacing:.04em}
 .plan .p-sub{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px;letter-spacing:.02em}
 
-.chips{display:flex;gap:8px;margin-top:14px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips{display:flex;gap:8px;margin-top:16px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{
   flex:1 1 0;min-width:0;text-align:left;padding:11px 14px;border:1px solid var(--line);
@@ -142,7 +142,7 @@ html[data-theme="dark"] .ico-sun{display:none}
 .chip-label{display:block;font-size:9px;letter-spacing:.17em;color:var(--ink-3);text-transform:uppercase}
 .chip-value{display:block;font-size:12.5px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-.idle-actions{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.idle-actions{margin-top:20px;display:flex;flex-direction:column;gap:8px}
 .btn-primary{
   width:100%;height:54px;border-radius:16px;background:var(--btn-bg);color:var(--btn-ink);
   font-size:14px;letter-spacing:.06em;font-weight:500;
@@ -396,7 +396,7 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border:0;border-rad
 }
 @media (max-height:900px){
   .plan .p-sub{display:none}
-  .plan li{padding:8px 2px}
+  .plan li{padding:10px 2px}
   .display{font-size:32px}
   #screenIdle{padding-top:16px}
   .lede{font-size:13px;margin-top:12px}

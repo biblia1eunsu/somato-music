@@ -865,5 +865,10 @@
   }
 
   document.addEventListener('DOMContentLoaded', init);
-  window.__somato = { state, buildPlan, get plan() { return plan; } };
+  window.__somato = {
+    state, buildPlan,
+    get plan() { return plan; },
+    get yt() { return yt; },
+    get audio() { return audio; }
+  };
 })();
