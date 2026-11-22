@@ -1222,6 +1222,8 @@
   /* ── 시작 ───────────────────────────────────── */
   function init() {
     loadPrefs();
+    /* 새로 열면 아직 소리는 나지 않습니다 — 대기 음악 버튼도 '켜기' 상태로 시작합니다 */
+    state.ambientOn = false;
     try {
       const q = new URLSearchParams(location.search);
       if (q.get('dark') === '1') state.dark = true;

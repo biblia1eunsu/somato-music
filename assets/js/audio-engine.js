@@ -174,10 +174,15 @@
     out.connect(analyser);
     this.analyser = analyser;
 
-    /* 음악만 재는 탭 — 유튜브 재생 중 내장 사운드가 정확히 0인지 실측할 때 씁니다 */
+    /* 음악만 재는 탭 — 유튜브 재생 중 내장 사운드가 정확히 0인지 실측할 때 씁니다
+       (AnalyserNode 는 출력이 연결돼 있어야 처리되므로 0 게인 통로를 붙입니다) */
     const musicTap = ctx.createAnalyser();
     musicTap.fftSize = 1024;
     master.connect(musicTap);
+    const tapSink = ctx.createGain();
+    tapSink.gain.value = 0;
+    musicTap.connect(tapSink);
+    tapSink.connect(out);
     this.musicTap = musicTap;
 
     this.direct = ctx.destination;
