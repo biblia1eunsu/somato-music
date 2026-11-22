@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube 임베드 검증 v3</title>
+<style>
+body{font:13px/1.5 -apple-system,system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:14px}
+h1{font-size:15px;font-weight:600;margin:0 0 6px}
+p{color:#9b9b9b;margin:0 0 12px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{border-bottom:1px solid #262626;padding:4px 6px;text-align:left;vertical-align:top}
+.ok{color:#6ee7a0}.bad{color:#ff7a7a}.wait{color:#c9c9c9}.ad{color:#e8c777}
+#player{position:fixed;right:6px;bottom:6px;width:180px;height:101px;opacity:.2;pointer-events:none}
+#sum{margin:8px 0;color:#ccc;font-weight:600}
+</style></head><body>
+<h1>YouTube 임베드 재생 검증 v4</h1>
+<p>실제 IFrame 플레이어로 음소거 재생해 Error 101/150/2/5 여부를 확인합니다. 광고가 나오면 기다립니다.</p>
+<div id="sum">대기 중…</div>
+<table><thead><tr><th>#</th><th>구간</th><th>ID</th><th>제목</th><th>결과</th><th>초</th></tr></thead><tbody id="tb"></tbody></table>
+<div id="player"></div>
+<script>
+const ITEMS = [{"id": "imGaOIm5HOk", "label": "Kiss the Rain · 이루마 Yiruma", "cat": "wait"}, {"id": "7maJOI3QMu0", "label": "River Flows in You · 이루마 Yiruma", "cat": "wait"}, {"id": "iqkgLhRThIE", "label": "Grace · Fiona Joy Hawkins", "cat": "wait"}, {"id": "LdlKL_ArHaY", "label": "Blue Dream · Fiona Joy Hawkins", "cat": "wait"}, {"id": "ESqHYfdDm7c", "label": "Return to the Heart · David Lanz", "cat": "wait"}, {"id": "8TYO4Css6tE", "label": "Evening Fall (Harp) · Kevin MacLeod", "cat": "wait"}, {"id": "9Y_gigLpilk", "label": "Kiss of a Rose · Deuter", "cat": "wait"}, {"id": "Drk-0Laarjc", "label": "Koyasan · Deuter", "cat": "opening"}, {"id": "7RLstyPt5gs", "label": "East of the Full Moon · Deuter", "cat": "opening"}, {"id": "FcMhSNiG59U", "label": "Tonglen · Deuter", "cat": "opening"}, {"id": "S4Oi4NKobpk", "label": "Lovesong from the Mountains · Deuter", "cat": "opening"}, {"id": "78fcz7oNHmo", "label": "Serenity · Liquid Mind", "cat": "opening"}, {"id": "187iIfm_Mvw", "label": "Hymn for Peace · Liquid Mind", "cat": "opening"}, {"id": "05Cax-OCtPw", "label": "May Be · 이루마 Yiruma", "cat": "bridge"}, {"id": "Ox23mWkDhMk", "label": "Wait There · 이루마 Yiruma", "cat": "bridge"}, {"id": "_R0Ix90hFu8", "label": "Poem+ (시처럼) · 이루마 Yiruma", "cat": "bridge"}, {"id": "1e07OAWvWkQ", "label": "Kiss the Rain (Orchestra) · 이루마 Yiruma", "cat": "bridge"}, {"id": "hm8y6kzXwEU", "label": "Cristofori's Dream (Remastered) · David Lanz", "cat": "bridge"}, {"id": "lAdCVhQ0f7w", "label": "Summer Ayre · David Lanz", "cat": "bridge"}, {"id": "pTzJO637ymA", "label": "Inner Balance · Parijat", "cat": "flow/classic"}, {"id": "8fCXh_Q5gvQ", "label": "Inner Light · Parijat", "cat": "flow/classic"}, {"id": "6S0TInctE8M", "label": "Path of Silence · Parijat", "cat": "flow/classic"}, {"id": "2PZeJ1r7SPc", "label": "Somewhere · Fiona Joy Hawkins", "cat": "flow/classic"}, {"id": "1SwdND7nokU", "label": "Drei · Deuter", "cat": "flow/classic"}, {"id": "x2XGx18rO20", "label": "Le Onde · Ludovico Einaudi", "cat": "flow/neoclassic"}, {"id": "TL1v3KVi6go", "label": "I Giorni · Ludovico Einaudi", "cat": "flow/neoclassic"}, {"id": "Bjwgv9lWrfk", "label": "Due Tramonti · Ludovico Einaudi", "cat": "flow/neoclassic"}, {"id": "sR2W2scFS4Y", "label": "Nuvole Bianche · Ludovico Einaudi", "cat": "flow/neoclassic"}, {"id": "Lwpft9AgqmE", "label": "Una Mattina · Ludovico Einaudi", "cat": "flow/neoclassic"}, {"id": "0kYc55bXJFI", "label": "Near Light · Ólafur Arnalds", "cat": "flow/neoclassic"}, {"id": "1OZDaRhHHyM", "label": "Merry Christmas Mr. Lawrence · Ryuichi Sakamoto", "cat": "flow/neoclassic"}, {"id": "IHhJURATDQI", "label": "Aqua · Ryuichi Sakamoto", "cat": "flow/neoclassic"}, {"id": "InyT9Gyoz_o", "label": "On the Nature of Daylight · Max Richter", "cat": "flow/neoclassic"}, {"id": "2SvKuIvwtXU", "label": "As She Passes · Levi Patel", "cat": "flow/neoclassic"}, {"id": "se_WP1Mh0g8", "label": "Gayatri Mantra · Deva Premal", "cat": "flow/mantra"}, {"id": "2wBbL2xYVqQ", "label": "Om Mani Padme Hum · Deva Premal", "cat": "flow/mantra"}, {"id": "CvMAyZr3Vs0", "label": "Ong Namo · Snatam Kaur", "cat": "flow/mantra"}, {"id": "f8EzVceL-Xs", "label": "Ra Ma Da Sa · Snatam Kaur", "cat": "flow/mantra"}, {"id": "m8ntAg7yeYQ", "label": "Sa Ta Na Ma · Mirabai Ceiba", "cat": "flow/mantra"}, {"id": "PrS7eTkO5gM", "label": "I Am · Nirinjan Kaur", "cat": "flow/mantra"}, {"id": "YzJBKY4dvX8", "label": "Guru Ram Das / Ra Ma Da Sa · Spirit Voyage", "cat": "flow/mantra"}, {"id": "dwJ04_9LGrM", "label": "O Holy Night · Rousseau", "cat": "flow/christmas"}, {"id": "MhC90ReY49I", "label": "Silent Night · Rousseau", "cat": "flow/christmas"}, {"id": "Z3bNAvaQihA", "label": "Carol of the Bells · Rousseau", "cat": "flow/christmas"}, {"id": "646k9QfzY2E", "label": "O Holy Night · Francesco Parrino", "cat": "flow/christmas"}, {"id": "QTLoPTCA7-Q", "label": "Have Yourself a Merry Little Christmas · Francesco Parrino", "cat": "flow/christmas"}, {"id": "-GIrNLQjiPw", "label": "Silent Night · Francesco Parrino", "cat": "flow/christmas"}, {"id": "xLWio9lHehE", "label": "Silent Night (Solo Piano) · Fiona Joy Hawkins", "cat": "flow/christmas"}, {"id": "Nz15gbUa-k4", "label": "Clair de Lune · Amy Turk · harp", "cat": "cooldown"}, {"id": "paXn1Q0aelA", "label": "Watching the Wheat · Amy Turk · harp", "cat": "cooldown"}, {"id": "EjPprEFuU8M", "label": "Love's Return · David Lanz", "cat": "cooldown"}, {"id": "bk2Bvjl8juU", "label": "Autumn Ayre · David Lanz", "cat": "cooldown"}, {"id": "n9gOV7arRtI", "label": "The Journey · Fiona Joy Hawkins", "cat": "cooldown"}, {"id": "q3mwaSbbqjQ", "label": "The White Light · Fiona Joy Hawkins", "cat": "cooldown"}, {"id": "NJdrQ2jjqOU", "label": "바람의 노래 (Wind Song) · 소향 Sohyang", "cat": "savasana/song"}, {"id": "Dbxzh078jr4", "label": "너의 모든 순간 · 성시경", "cat": "savasana/song"}, {"id": "1P3jzu6Mt6w", "label": "너의 모든 순간 (라이브) · 성시경", "cat": "savasana/song"}, {"id": "sCmcSBsTxQc", "label": "비와 당신 · 이무진", "cat": "savasana/song"}, {"id": "JWfyto-1oT0", "label": "Your Song · 샘김 Sam Kim", "cat": "savasana/song"}, {"id": "jcuIJ9waAVw", "label": "그 여름밤 · 샘김 Sam Kim", "cat": "savasana/song"}, {"id": "A1YAdFjdvx4", "label": "Something in the Rain · Rachael Yamagata", "cat": "savasana/song"}, {"id": "KUuMyyZoYO4", "label": "Duet · Rachael Yamagata", "cat": "savasana/song"}, {"id": "YzR8BCmV9Ew", "label": "Here With Me · Susie Suh × Robot Koch", "cat": "savasana/song"}, {"id": "lbjZPFBD6JU", "label": "Come Away With Me · Norah Jones", "cat": "savasana/song"}, {"id": "hCrtcVDgCGw", "label": "Love Is Gone (Acoustic) · SLANDER ft. Dylan Matthew", "cat": "savasana/song"}, {"id": "hsLiJP2rqS8", "label": "Shouldn't Be · Luke Chiang", "cat": "savasana/song"}, {"id": "PFG8VCQ9pG0", "label": "Moments · Micah Edwards", "cat": "savasana/song"}, {"id": "bq3SXN3GWvI", "label": "Fare Thee Well · Ashley Davis", "cat": "savasana/song"}, {"id": "IsK0LL3qm5E", "label": "Love So True · Ashton Edminster", "cat": "savasana/song"}, {"id": "T__HNxkZPCc", "label": "Nothing's Gonna Change My Love for You · Chendy", "cat": "savasana/song"}, {"id": "zTqdBX5FChw", "label": "Exactly as It Is · Miten", "cat": "savasana/song"}, {"id": "kq24R_8jYg4", "label": "Somebody New · Sophia James", "cat": "savasana/song"}, {"id": "NNvwaTNqjik", "label": "Reasons to Stay · Kate Vogel", "cat": "savasana/song"}, {"id": "QAzsVYgwE2s", "label": "Lokah Samastah Sukhino Bhavantu · Cabrini Asteriska", "cat": "savasana/song"}, {"id": "v9Blx4URf34", "label": "And She Translated Into the Sky · Levi Patel", "cat": "savasana/piano"}, {"id": "kSRnuWAaeH8", "label": "Threnody · Goldmund", "cat": "savasana/piano"}, {"id": "2P8PZbh53ec", "label": "Over There, It's Raining · Nils Frahm", "cat": "savasana/piano"}, {"id": "niCMpOkMcWU", "label": "I Can Almost See You · Hammock", "cat": "savasana/piano"}, {"id": "96DL94T21sw", "label": "I Would Give My Breath Away · Hammock", "cat": "savasana/piano"}, {"id": "83JW5ZhVSWc", "label": "Indoor Swimming at the Space Station · Eluvium", "cat": "savasana/piano"}, {"id": "OlaTeXX3uH8", "label": "An Ending (Ascent) · Brian Eno", "cat": "savasana/bodyscan"}, {"id": "rt97c92WjRw", "label": "Structures from Silence · Steve Roach", "cat": "savasana/bodyscan"}, {"id": "_8aYF9PtQjA", "label": "Requiem for Dying Mothers, Pt. 2 · Stars of the Lid", "cat": "savasana/bodyscan"}, {"id": "-bc37fU36Vk", "label": "Requiem for Dying Mothers, Pt. 1 · Stars of the Lid", "cat": "savasana/bodyscan"}, {"id": "-ar9vsmFhJU", "label": "11분 차크라 튠업 · 롱 톤 · templesounds", "cat": "savasana/bowl"}, {"id": "8Qhh2VF1Oz4", "label": "크리스탈 볼 14분 차크라 명상 · templesounds", "cat": "savasana/bowl"}, {"id": "S0IKiepm9Hs", "label": "10분 티벳 싱잉볼 · Shanti Yoga", "cat": "savasana/bowl"}, {"id": "Rcp_PjxfPU0", "label": "20분 사운드 배스 · 집중 · Aurabowls", "cat": "savasana/bowl"}, {"id": "7_Hmo3TnSzI", "label": "10분 써드아이 차크라 사운드 배스 · Healing Vibrations", "cat": "savasana/bowl"}, {"id": "IlHKM733TjA", "label": "15분 사운드 배스 · Sound Healing Vibes", "cat": "savasana/bowl"}, {"id": "buOVKY0LAdw", "label": "8분 루트 차크라 사운드 배스 · Healing Vibrations", "cat": "savasana/bowl"}, {"id": "3V0iwhq3jdA", "label": "Gayatri Mantra · Deva Premal", "cat": "savasana/vocal"}, {"id": "4IFlaG45xM8", "label": "Gayatri Mantra (In Concert) · Deva Premal & Miten", "cat": "savasana/vocal"}, {"id": "vViFW9KDXA4", "label": "Ra Ma Da Sa (Live in Bucharest) · Snatam Kaur", "cat": "savasana/vocal"}, {"id": "mEP3Fiw2ouo", "label": "Rain of Blessings / Ra Ma Da Sa · Deva Premal & Miten", "cat": "savasana/vocal"}, {"id": "xla3n9Uh6XM", "label": "Courage · Amy Turk · harp", "cat": "savasana/harp"}, {"id": "5Yj3SAxH0uY", "label": "The Merchant (Dead Cells) · Amy Turk · harp", "cat": "savasana/harp"}, {"id": "OOKFf_TeE2M", "label": "Harp Lullaby (Celtic Harp) · Little Moon Dreams", "cat": "savasana/harp"}, {"id": "hQHjGorl1L4", "label": "You Are My Sunshine (Lullaby) · Music Box Lullabies", "cat": "savasana/harp"}, {"id": "hs6AcuPcPgw", "label": "Wiegenlied · Brahms (뮤직박스) · R3 Music Box", "cat": "savasana/harp"}, {"id": "-1c6y3qsR2g", "label": "Isabella's Lullaby (뮤직박스) · R3 Music Box", "cat": "savasana/harp"}, {"id": "dXAH4gpD5hg", "label": "Christmas Music Box Instrumental · The Lyrical Lanterns", "cat": "savasana/christmas"}, {"id": "QYAD6L7pB-4", "label": "Deck the Halls (뮤직박스) · R3 Music Box", "cat": "savasana/christmas"}, {"id": "9k6zbBUOZRw", "label": "Silent Night (뮤직박스) · R3 Music Box", "cat": "savasana/christmas"}, {"id": "-mJK7jjU3_Q", "label": "Silent Night (뮤직박스) · The Music Box Corner", "cat": "savasana/christmas"}];
+const TIMEOUT = 20000;
+window.__results = [];
+window.__done = false;
+let player = null, idx = 0, timer = null, startAt = 0, retryQueue = [], retriesLeft = [];
+
+function rowFor(i, it){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${i+1}</td><td>${it.cat}</td><td>${it.id}</td><td>${(it.label||'').slice(0,46)}</td><td class="wait">·</td><td>0</td>`;
+  document.getElementById('tb').appendChild(tr);
+  return tr;
+}
+const rows = ITEMS.map((it,i)=>rowFor(i,it));
+
+window.onYouTubeIframeAPIReady = function(){
+  player = new YT.Player('player', {
+    height:'101', width:'180', videoId: ITEMS[0].id,
+    playerVars:{autoplay:0, controls:0, disablekb:1, modestbranding:1, playsinline:1, origin:location.origin},
+    events:{
+      onReady: ()=>{ try{player.mute();}catch(e){}; next(0); },
+      onError: (e)=>{ finish(false, 'error '+e.data, false); },
+      onStateChange: ()=>{}
+    }
+  });
+};
+function loadApi(){
+  const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api';
+  s.onerror = ()=>{ document.getElementById('sum').textContent = 'IFrame API 로드 실패'; };
+  document.head.appendChild(s);
+}
+function show(sumId, i, txt, cls){
+  const el = (sumId != null && sumId >= 0) ? rows[sumId] : null;
+  if (el) { el.cells[4].textContent = txt; el.cells[4].className = cls; }
+}
+function next(i){
+  if(i >= ITEMS.length){ done(); return; }
+  idx = i;
+  startAt = Date.now();
+  show(i, i, '재생 중…', 'wait');
+  try { player.loadVideoById({videoId: ITEMS[i].id, startSeconds: 0}); } catch(e){ finish(false,'load '+e); return; }
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    const ms = Date.now() - startAt;
+    rows[i].cells[5].textContent = (ms/1000).toFixed(1);
+    let st = -1, t = 0, dur = 0, data = null;
+    try { st = player.getPlayerState(); t = player.getCurrentTime(); dur = player.getDuration(); data = player.getVideoData && player.getVideoData(); } catch(e){}
+    const isAd = dur > 0 && dur < 100;
+    if (isAd) show(i, i, '광고 대기…', 'ad');
+    // 광고가 나온다는 것은 임베드 재생이 허용된 영상이라는 뜻입니다 (101/150 은 광고도 못 띄웁니다)
+    if (isAd && ms > 1500) finish(true, 'ad→playable');
+    else if (st === 1 && t > 0.5 && !isAd) finish(true, 'playing ' + t.toFixed(1) + 's');
+    else {
+      // 광고가 끈 뒤 unstarted/paused 면 다시 재생 (앱 본체와 같은 보정)
+      if ((st === -1 || st === 2) && ms > 2500 && !isAd) { try { player.playVideo(); } catch(e){} }
+      if (ms > TIMEOUT) finish(false, 'timeout state=' + st + ' dur=' + Math.round(dur), isAd);
+    }
+  }, 250);
+}
+function finish(ok, note, wasAd){
+  if (rows[idx].cells[4].textContent.startsWith('OK') || rows[idx].cells[4].textContent.startsWith('FAIL')) return;
+  clearInterval(timer);
+  const secs = (Date.now() - startAt)/1000;
+  const it = ITEMS[idx];
+  let vtitle = '';
+  try { vtitle = (player.getVideoData()||{}).title || ''; } catch(e){}
+  rows[idx].cells[4].textContent = (ok?'OK':'FAIL')+' · '+note;
+  rows[idx].cells[4].className = ok ? 'ok' : 'bad';
+  rows[idx].cells[5].textContent = secs.toFixed(1);
+  window.__results.push({id: it.id, cat: it.cat, label: it.label, ok, note, secs:+secs.toFixed(1), ad: !!wasAd, vtitle});
+  if (!ok) retriesLeft.push({item: it, row: idx});
+  const okc = window.__results.filter(r=>r.ok).length;
+  const fails = window.__results.filter(r=>!r.ok).length;
+  document.getElementById('sum').textContent = `${window.__results.length}/${ITEMS.length} · OK ${okc} · FAIL ${fails}`;
+  setTimeout(()=>next(idx+1), 150);
+}
+function done(){
+  if (retriesLeft.length && !window.__retried){
+    window.__retried = true;
+    document.getElementById('sum').textContent += ' · 실패 항목 재시도 중…';
+    const q = retriesLeft.slice(); retriesLeft = [];
+    window.__retryQ = q;
+    retryNext(0);
+    return;
+  }
+  window.__done = true;
+  const okc = window.__results.filter(r=>r.ok).length;
+  document.getElementById('sum').textContent = `완료 — ${ITEMS.length}개 중 OK ${okc} · FAIL ${ITEMS.length-okc}`;
+}
+function retryNext(k){
+  const q = window.__retryQ || [];
+  if (k >= q.length){ window.__done = true;
+    const okc = window.__results.filter(r=>r.ok).length;
+    document.getElementById('sum').textContent = `완료 — ${ITEMS.length}개 중 OK ${okc} · FAIL ${ITEMS.length-okc}`;
+    return; }
+  const entry = q[k];
+  idx = entry.row;
+  rows[idx].cells[4].textContent = '재시도…'; rows[idx].cells[4].className='wait';
+  startAt = Date.now();
+  try { player.loadVideoById({videoId: ITEMS[idx].id, startSeconds: 0}); } catch(e){}
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    const ms = Date.now() - startAt;
+    let st=-1,t=0,dur=0;
+    try { st=player.getPlayerState(); t=player.getCurrentTime(); dur=player.getDuration(); } catch(e){}
+    const isAd = dur>0 && dur<100;
+    if(isAd){ rows[idx].cells[4].textContent='광고 대기…'; rows[idx].cells[4].className='ad'; }
+    if(st===1 && t>0.5 && !isAd){
+      clearInterval(timer);
+      const rec = window.__results.find(r=>r.id===ITEMS[idx].id);
+      if (rec){ rec.ok=true; rec.note='retry playing '+t.toFixed(1)+'s'; }
+      rows[idx].cells[4].textContent='OK · retry'; rows[idx].cells[4].className='ok';
+      const okc = window.__results.filter(r=>r.ok).length;
+      document.getElementById('sum').textContent = `재시도 중 · OK ${okc}/${ITEMS.length}`;
+      setTimeout(()=>retryNext(k+1), 250);
+    } else if (ms > TIMEOUT){
+      clearInterval(timer);
+      rows[idx].cells[4].textContent='FAIL · retry timeout'; rows[idx].cells[4].className='bad';
+      setTimeout(()=>retryNext(k+1), 250);
+    }
+  }, 250);
+}
+loadApi();
+</script>
+</body></html>
