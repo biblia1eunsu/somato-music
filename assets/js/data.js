@@ -22,7 +22,7 @@ window.SOMATO_DATA = {
       { t: "Return to the Heart", a: "David Lanz", y: "ESqHYfdDm7c" },
       { t: "River Flows in You", a: "이루마 Yiruma", y: "7maJOI3QMu0" },
       { t: "Blue Dream", a: "Fiona Joy Hawkins", y: "LdlKL_ArHaY" }
-    ]
+    ],
 
     /* 오프닝 — 호흡 · 그라운딩 (Yoga · Parijat · Argon Riffer · Deuter) */
     opening: [
@@ -34,7 +34,7 @@ window.SOMATO_DATA = {
       { t: "Koyasan", a: "Deuter", y: "Drk-0Laarjc" },
       { t: "East of the Full Moon", a: "Deuter", y: "7RLstyPt5gs" },
       { t: "Kiss of a Rose", a: "Deuter", y: "9Y_gigLpilk" }
-    ]
+    ],
 
     /* 피아노 브릿지 — 이루마 · David Lanz · 리정혁 */
     bridge: [
@@ -46,7 +46,7 @@ window.SOMATO_DATA = {
       { t: "Wait There", a: "이루마 Yiruma", y: "Ox23mWkDhMk" },
       { t: "Poem+ (시처럼)", a: "이루마 Yiruma", y: "_R0Ix90hFu8" },
       { t: "Kiss the Rain (Orchestra)", a: "이루마 Yiruma", y: "1e07OAWvWkQ" }
-    ]
+    ],
 
     /* 컴다운 — Liquid Mind · Parijat · Kevin MacLeod · 하프 */
     cooldown: [
@@ -60,7 +60,7 @@ window.SOMATO_DATA = {
       { t: "Watching the Wheat", a: "Amy Turk · harp", y: "paXn1Q0aelA" },
       { t: "The Journey", a: "Fiona Joy Hawkins", y: "n9gOV7arRtI" },
       { t: "The White Light", a: "Fiona Joy Hawkins", y: "q3mwaSbbqjQ" }
-    ]
+    ],
 
     flow: {
       /* 클래식 소마토 플로우 — David Lanz · Parijat · Argon Riffer · Deuter */

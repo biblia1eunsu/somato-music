@@ -225,13 +225,13 @@ window.SOMATO_DATA = {
 
   tracks: {''')
 
-out.append(block('wait', data['wait'], '수업 전 · 수업 후 대기 — 이루마 · 리정혁 · Lisa Swerdlow · Fiona Joy Hawkins'))
+out.append(block('wait', data['wait'], '수업 전 · 수업 후 대기 — 이루마 · 리정혁 · Lisa Swerdlow · Fiona Joy Hawkins') + ',')
 out.append('')
-out.append(block('opening', data['opening'], '오프닝 — 호흡 · 그라운딩 (Yoga · Parijat · Argon Riffer · Deuter)'))
+out.append(block('opening', data['opening'], '오프닝 — 호흡 · 그라운딩 (Yoga · Parijat · Argon Riffer · Deuter)') + ',')
 out.append('')
-out.append(block('bridge', data['bridge'], '피아노 브릿지 — 이루마 · David Lanz · 리정혁'))
+out.append(block('bridge', data['bridge'], '피아노 브릿지 — 이루마 · David Lanz · 리정혁') + ',')
 out.append('')
-out.append(block('cooldown', data['cooldown'], '컴다운 — Liquid Mind · Parijat · Kevin MacLeod · 하프'))
+out.append(block('cooldown', data['cooldown'], '컴다운 — Liquid Mind · Parijat · Kevin MacLeod · 하프') + ',')
 out.append('')
 out.append('    flow: {')
 flow_parts = []

@@ -403,7 +403,12 @@
       if (owner !== 'youtube' || !yt.player) return;
       let st = -1;
       try { st = yt.player.getPlayerState(); } catch (e) { return; }
-      if (st === 1 || st === 3) return;         // 재생·버퍼링 중이면 기다립니다 (광고 포함)
+      if (st === 1) return;                     // 재생 중 — 광고 포함
+      if (st === 3 && (yt.bufferWaits || 0) < 3) {
+        yt.bufferWaits = (yt.bufferWaits || 0) + 1;   // 버퍼링 — 조금 더 지켜봅니다
+        armWatchdog(12000);
+        return;
+      }
       if (!yt.stallRetried) {
         yt.stallRetried = true;
         try { yt.player.playVideo(); } catch (e) {}
@@ -422,6 +427,7 @@
     clearYTTimers();          // 이전 감시 · 예약 전환 · 정지 예약을 모두 취소
     yt.expected = track.y;
     yt.stallRetried = false;
+    yt.bufferWaits = 0;
     renderNow(track);
     setBadge('youtube');
     $('#nowCard').classList.add('is-playing');

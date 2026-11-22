@@ -7,8 +7,8 @@
 
 | 구간 | 시간 | 내용 |
 | --- | --- | --- |
-| 오프닝 | 10분 | 호흡 · 그라운딩 (Deuter · Liquid Mind의 스튜디오 트랙) |
-| 피아노 브릿지 | 3·4·5분 선택 (기본 4분) | 이루마 「Kiss the Rain」·「River Flows in You」·「Wait There」·「Poem+」 |
+| 오프닝 | 10분 | 호흡 · 그라운딩 (Yoga · Parijat · Argon Riffer · Deuter · Liquid Mind) |
+| 피아노 브릿지 | 3·4·5분 선택 (기본 4분) | 이루마 「Kiss the Rain」·「River Flows in You」·「Wait There」, David Lanz, 리정혁 |
 | 메인 플로우 | 31·30·29분 (브릿지 길이에 따라 자동 조정) | 플로우 테마 4종 |
 | 컴다운 | 10분 | 심박을 가라앉히는 피아노 · 하프 |
 | 사바아사나 | 5분 | 추천 풀 7종 + 오늘의 랜덤 추천 |
@@ -27,7 +27,7 @@
 
 **감성곡 · 가사 있는** (소향 Wind Song, 성시경 너의 모든 순간, 이무진 비와 당신, 샘김 그 여름밤 · Your Song,
 Rachael Yamagata, Susie Suh × Robot Koch, Norah Jones, SLANDER acoustic 등) /
-**가사 없는 힐링 건반** (Levi Patel, Fiona Joy Hawkins, Ólafur Arnalds, Goldmund, Nils Frahm, Hammock, Eluvium, Ryuichi Sakamoto, Max Richter, Ludovico Einaudi) /
+**가사 없는 힐링 건반** (Levi Patel, Fiona Joy Hawkins, relaxdaily, Ólafur Arnalds, Ludovico Einaudi, Max Richter, Ryuichi Sakamoto) /
 **바디스캔 · 앰비언트** (Brian Eno, Steve Roach, Stars of the Lid) /
 싱잉볼 · 명상 / 만트라 · 보컬 / 하프 · 오르골 / 크리스마스 잔잔한 캐럴 /
 **오늘의 랜덤 추천**(감성곡과 가사 없는 힐링곡이 번갈아 섞입니다).
@@ -55,16 +55,25 @@ Rachael Yamagata, Susie Suh × Robot Koch, Norah Jones, SLANDER acoustic 등) /
 ## 음원 재생 구조
 
 1. **YouTube IFrame Player API** 로 구간별 큐를 순환 재생합니다. 큐의 모든 영상은 실제
-   IFrame 플레이어로 임베드 검사를 통과한 ID만 수록했습니다(`tools/verify5.html` · `verify6.html`).
-   1시간짜리 모음 · 저음질 비공식 업로드는 모두 걷어냈습니다.
-2. 유튜브 광고는 IFrame API로 감지·건너뛰기가 불가능합니다(플레이어가 광고 여부를
-   노출하지 않습니다). 광고 없는 수업을 원하면 사운드 소스를 **내장 사운드**로 바꾸거나
-   YouTube Premium 로그인 상태로 사용하세요.
-3. 영상이 임베드 제한(Error 101/150/2/5)이거나 네트워크가 끊기면, 같은 구간의
-   **내장 힐링 사운드 엔진**(Web Audio API)으로 자동 전환합니다. 패드 · 펠트 피아노 ·
-   하프 · 오르골 · 싱잉볼을 사인파 기반으로 실시간 합성하므로 음원 파일 없이도
-   수업이 끊기지 않습니다. (노이즈로 만들던 빗소리 · 바람 소리는 v3에서 걷어냈습니다)
-4. 설정이나 수업 화면의 **유튜브·내장** 칩으로 언제든 전환할 수 있습니다.
+   IFrame 플레이어로 임베드 검사를 통과한 ID만 수록했습니다(`tools/verify5.html` ·
+   `verify6.html` · `verify7.html` · `verify8.html`). 1시간짜리 모음 · 저음질 비공식
+   업로드는 모두 걷어냈습니다.
+2. **소리의 주인은 언제나 하나입니다 (v24)** — `owner` 가 `youtube` 이면 내장 사운드
+   두 덱을 즉시 완전 정지(gain 0 + stop)하고, `builtin` 이면 유튜브를 `mute()` +
+   `stopVideo()` 합니다. 유튜브 볼륨을 올리는 모든 경로는 `owner === 'youtube'` 일 때만
+   열리므로, 늦게 도착한 타이머·콜백이 소리를 겹치게 만들 수 없습니다.
+   앱 안의 내장 사운드 출력은 `musicPeak()`(유튜브 재생 중 0)로 실측 확인합니다.
+3. 유튜브 광고는 IFrame API가 광고 여부를 알려주지 않아 재생 길이(광고 ≤ 100초,
+   수록곡 ≥ 3분)로 판별합니다. 광고 구간에는 **어떤 소리도 내지 않습니다** —
+   광고는 무음으로 지나가고, 본 영상이 실제로 시작된 순간에만 볼륨이 올라옵니다.
+   (v23의 '광고 후 20초 → 내장 사운드' 규칙은 v24에서 없앴습니다)
+4. 영상이 임베드 제한(Error 101/150/2/5)이거나 재생이 두 번 다시 시작되지 않으면,
+   유튜브를 완전히 멈춘 뒤 같은 구간의 **내장 힐링 사운드 엔진**(Web Audio API)으로
+   전환합니다.
+5. 내장 엔진은 **하프 · 펠트 피아노 · 오르골의 뜯는 소리 + 3.2초 잔향**만 냅니다.
+   지속 드론/패드 신스음과 높은 사인 지속음(shimmer)은 v4에서 모두 걷어냈습니다.
+   싱잉볼 타종은 음악 게이트와 분리된 FX 버스라 유튜브 재생 중에도 사용자가 켰을 때만 울립니다.
+6. 설정이나 수업 화면의 **유튜브·내장** 칩으로 언제든 전환할 수 있습니다.
 
 ## 파일 구성
 
@@ -90,6 +99,10 @@ GitHub Pages — `main` 브랜치 루트. `https://biblia1eunsu.github.io/somato
   같은 곡의 다른 검증된 업로드로 바꿨고, 재생이 잠시 지연된 3건은 재검에서 정상임을 확인했습니다.
 - 이전 라운드 — `tools/verify.html` · `verify2.html`(1차 92 + 2차 15곡) · `verify3.html`(사바아사나 보강 후보 49건).
 - 라이브: https://biblia1eunsu.github.io/somato-music/
+- `tools/verify7.html` · `verify8.html`(v24) — 은수 님 리스트에서 새로 넣은 27곡 + 대체 후보 3곡을
+  실제 IFrame 플레이어로 검사했습니다. 1건(Error 150)은 같은 곡의 다른 업로드로 바꿔 전량 OK.
+- v24 실측 — 유튜브 재생 중 내장 출력 0(musicPeak 0), 25초 대기 후에도 덮어씌움 없음,
+  수업 시작 시 한 소리만, 콘솔 오류 0건.
 - 확인한 동작 — `다른 곡`·구간 이동에서 **3.5초 페이드아웃 → 3.5초 페이드인**(라이브 실측 62 → 0 → 62,
   250ms 간격 샘플), 대기 음악 출력이 설정 볼륨의 68%로 동작(62% 설정 → 42.2%), 수업 시작·구간 자동/수동 전환 크로스페이드,
   바디스캔 드론 레벨(RMS 0.021)과 내장 사운드 덱 크로스페이드(1→0 · 0→1, 3.5초),
