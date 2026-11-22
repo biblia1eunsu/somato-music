@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>소마토센서리 요가 · 클래스 음악</title>
+<meta name="description" content="비비아요가앳홈 60분 소마토센서리 요가 수업 음악 플레이어">
+<meta name="theme-color" content="#F3EFE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="소마토 음악">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-text">
+        <strong>소마토센서리 요가</strong>
+        <span>비비아요가앳홈 · CLASS PLAYER</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="라이트 · 다크 모드 전환">
+        <svg class="ico ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
+        <svg class="ico ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 14.6A8.6 8.6 0 0 1 9.4 3.6a8.9 8.9 0 1 0 11 11Z"/></svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="설정 열기">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage">
+
+    <!-- ── 대기 화면 ────────────────────────────────── -->
+    <section class="screen is-active" id="screenIdle" aria-label="수업 시작 전">
+      <p class="eyebrow">SIXTY MINUTES · ONE BREATH</p>
+      <h1 class="display">소마토센서리<br>요가 클래스</h1>
+      <p class="lede">호흡으로 시작해 사바아사나로 닫히는 60분.<br>구간이 바뀔 때마다 음악이 천천히 이어집니다.</p>
+
+      <ol class="plan" id="idlePlan"></ol>
+
+      <div class="chips" id="idleChoices">
+        <button class="chip" id="idleThemeChip" type="button">
+          <span class="chip-label">플로우 테마</span>
+          <span class="chip-value" id="idleThemeValue">클래식 소마토 플로우</span>
+        </button>
+        <button class="chip" id="idleSavaChip" type="button">
+          <span class="chip-label">사바아사나</span>
+          <span class="chip-value" id="idleSavaValue">오늘의 랜덤 추천</span>
+        </button>
+      </div>
+
+      <div class="idle-actions">
+        <button class="btn-primary" id="startBtn" type="button">수업 시작</button>
+        <button class="btn-ghost" id="ambientBtn" type="button" aria-pressed="false">
+          <span class="dot" aria-hidden="true"></span><span id="ambientBtnLabel">대기 음악 켜기</span>
+        </button>
+      </div>
+      <p class="hint" id="idleHint">수업 전에는 잔잔한 배경 음악이 반복됩니다.</p>
+    </section>
+
+    <!-- ── 수업 진행 화면 ─────────────────────────────── -->
+    <section class="screen" id="screenClass" aria-label="수업 진행">
+      <div class="section-head">
+        <p class="eyebrow" id="sectionEn">OPENING</p>
+        <h2 class="display section-name" id="sectionKo">오프닝</h2>
+        <p class="section-desc" id="sectionDesc">호흡을 바닥으로 내려놓는 10분</p>
+      </div>
+
+      <div class="time-block">
+        <div class="time-main"><span id="timeLeft">10:00</span><span class="time-unit">남음</span></div>
+        <div class="time-sub"><span id="timeElapsed">00:00</span> 경과 · 전체 <span id="timeTotal">60:00</span></div>
+        <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="segments" id="segments" aria-hidden="true"></div>
+      </div>
+
+      <div class="now-card" id="nowCard">
+        <div class="now-top">
+          <span class="now-label">지금 흐르는 음악</span>
+          <span class="badge" id="sourceBadge">YouTube</span>
+        </div>
+        <div class="now-title" id="nowTitle">—</div>
+        <div class="now-artist" id="nowArtist">—</div>
+        <div class="now-next"><span>다음</span><span id="nextTitle">—</span></div>
+        <div class="wave" aria-hidden="true" id="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="controls">
+        <button class="ctrl" id="prevBtn" type="button" aria-label="이전 구간으로">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 5v14L8 12l11-7Z"/><path d="M5 5v14"/></svg>
+        </button>
+        <button class="ctrl ctrl-main" id="playBtn" type="button" aria-label="일시정지">
+          <svg class="ico ico-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5v13M15.5 5.5v13"/></svg>
+          <svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 5.2v13.6L19 12 7.5 5.2Z"/></svg>
+        </button>
+        <button class="ctrl" id="nextBtn" type="button" aria-label="다음 구간으로">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l11-7L5 5Z"/><path d="M19 5v14"/></svg>
+        </button>
+      </div>
+
+      <div class="volume-row">
+        <svg class="ico ico-dim" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.5v13L7.2 14.5H4Z"/></svg>
+        <input type="range" id="volume" min="0" max="100" value="62" aria-label="음량">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.5v13L7.2 14.5H4Z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.6 7.6 0 0 1 0 11"/></svg>
+      </div>
+
+      <div class="quick" id="quickToggles">
+        <button class="toggle-pill" id="chimePill" type="button" aria-pressed="true">
+          <span class="dot"></span>싱잉볼 타종
+        </button>
+        <button class="toggle-pill" id="wakePill" type="button" aria-pressed="true">
+          <span class="dot"></span>화면 유지
+        </button>
+        <button class="toggle-pill" id="themePill" type="button">
+          <span class="dot"></span><span id="themePillLabel">클래식</span>
+        </button>
+      </div>
+
+      <div class="sava-panel" id="savaPanel" hidden>
+        <div class="sava-head">
+          <span class="sava-title">사바아사나 음악</span>
+          <button class="link-btn" id="savaRandom" type="button">오늘의 랜덤 추천</button>
+        </div>
+        <div class="sava-chips" id="savaChips"></div>
+      </div>
+
+      <button class="end-btn" id="endBtn" type="button">수업 마치기</button>
+    </section>
+
+    <!-- ── 수업 후 화면 ───────────────────────────────── -->
+    <section class="screen" id="screenDone" aria-label="수업 종료">
+      <p class="eyebrow">NAMAS TE</p>
+      <h2 class="display big">수업이<br>끝났습니다</h2>
+      <p class="lede" id="doneSummary">60분의 흐름이 마무리되었습니다.</p>
+      <div class="done-stats" id="doneStats"></div>
+      <div class="idle-actions">
+        <button class="btn-primary" id="againBtn" type="button">새 수업 시작</button>
+        <button class="btn-ghost" id="backIdleBtn" type="button">대기 음악으로</button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span id="footStatus">대기 중</span>
+  </footer>
+</div>
+
+<!-- ── 시트 ─────────────────────────────────────────── -->
+<div class="backdrop" id="backdrop" hidden></div>
+
+<aside class="sheet" id="sheetTheme" hidden aria-label="플로우 테마와 사바아사나">
+  <div class="sheet-grip" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h3>플로우 테마</h3>
+    <button class="icon-btn sheet-close" type="button" aria-label="닫기">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <p class="sheet-note">메인 플로우 30분의 결을 고릅니다. 수업 중에도 바꿀 수 있습니다.</p>
+  <div class="theme-list" id="themeList"></div>
+
+  <h3 class="sheet-sub">피아노 브릿지 길이</h3>
+  <div class="seg-picker" id="bridgePicker">
+    <button type="button" data-min="3">3분</button>
+    <button type="button" data-min="4" class="is-on">4분</button>
+    <button type="button" data-min="5">5분</button>
+  </div>
+
+  <h3 class="sheet-sub">사바아사나 추천 풀</h3>
+  <div class="pool-list" id="poolList"></div>
+</aside>
+
+<aside class="sheet" id="sheetSettings" hidden aria-label="설정">
+  <div class="sheet-grip" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h3>설정</h3>
+    <button class="icon-btn sheet-close" type="button" aria-label="닫기">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="setting-row">
+    <div><strong>사운드 소스</strong><span>유튜브가 막히면 내장 힐링 사운드로 자동 전환합니다.</span></div>
+    <select id="sourceSelect">
+      <option value="auto">자동 (유튜브 우선)</option>
+      <option value="builtin">내장 사운드만</option>
+    </select>
+  </div>
+
+  <div class="setting-row">
+    <div><strong>사바아사나 싱잉볼 타종</strong><span>사바아사나에 들어갈 때와 나올 때 은은하게 울립니다.</span></div>
+    <label class="switch"><input type="checkbox" id="chimeSwitch" checked><span></span></label>
+  </div>
+
+  <div class="setting-row">
+    <div><strong>화면 꺼짐 방지</strong><span>수업 중 아이폰·아이패드 화면을 켜 둡니다.</span></div>
+    <label class="switch"><input type="checkbox" id="wakeSwitch" checked><span></span></label>
+  </div>
+
+  <h3 class="sheet-sub">유튜브 링크로 곡 추가</h3>
+  <p class="sheet-note">유튜브에서 곡을 열어 주소를 복사한 뒤 붙여 넣으세요. 이 기기에만 저장됩니다.</p>
+  <div class="add-form">
+    <select id="addSlot"></select>
+    <input type="url" id="addUrl" placeholder="https://www.youtube.com/watch?v=..." inputmode="url" autocomplete="off">
+    <input type="text" id="addTitle" placeholder="곡 제목 (선택)" autocomplete="off">
+    <button class="btn-primary small" id="addBtn" type="button">추가</button>
+  </div>
+  <div class="custom-list" id="customList"></div>
+
+  <div class="sheet-foot">
+    <span id="versionLine">somato-music · v1.0</span>
+    <button class="link-btn danger" id="resetBtn" type="button">저장된 곡 초기화</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="ytHost" aria-hidden="true"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/audio-engine.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube 임베드 검증</title>
+<style>
+body{font:13px/1.5 -apple-system,system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:18px}
+h1{font-size:16px;font-weight:600;margin:0 0 6px}
+p{color:#8b8b8b;margin:0 0 14px}
+#wrap{max-width:900px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{border-bottom:1px solid #262626;padding:5px 6px;text-align:left;vertical-align:top}
+.ok{color:#6ee7a0}.bad{color:#ff7a7a}.wait{color:#c9c9c9}
+#player{position:fixed;right:8px;bottom:8px;width:200px;height:113px;opacity:.25;pointer-events:none}
+#sum{margin:10px 0;color:#bbb}
+</style></head><body>
+<div id="wrap">
+<h1>YouTube 임베드 재생 검증</h1>
+<p>실제 IFrame 플레이어로 음소거 재생하여 Error 101/150/2/5 여부를 확인합니다. 순차 진행.</p>
+<div id="sum">대기 중…</div>
+<table><thead><tr><th>#</th><th>구간</th><th>Video ID</th><th>제목</th><th>결과</th><th>초</th></tr></thead><tbody id="tb"></tbody></table>
+</div>
+<div id="player"></div>
+<textarea id="out" style="width:100%;height:80px;margin-top:12px;background:#1b1b1b;color:#ddd;border:1px solid #333"></textarea>
+<script>
+const ITEMS = [{"id": "1SwdND7nokU", "label": "Deuter - Drei", "cat": "pre"}, {"id": "78fcz7oNHmo", "label": "Liquid Mind - Serenity", "cat": "pre"}, {"id": "x8noBB1NIys", "label": "relaxdaily N°056", "cat": "pre"}, {"id": "qgY1sND0g3E", "label": "relaxdaily N°056 (10min)", "cat": "pre"}, {"id": "fgauFOtjRTE", "label": "Kevin MacLeod - Deep Relaxation", "cat": "pre"}, {"id": "UfcAVejslrU", "label": "Marconi Union - Weightless", "cat": "pre"}, {"id": "BXbsO8exZns", "label": "Deuter 1 Hour Meditation", "cat": "opening"}, {"id": "2YeofmJvCcg", "label": "Deuter - Koyasan Reiki Sound Healing", "cat": "opening"}, {"id": "_qunQ72RwgI", "label": "Shambhala's Secret Sound", "cat": "opening"}, {"id": "hu2BaymI6nA", "label": "Shambhala - Ethereal Meditative Ambient", "cat": "opening"}, {"id": "Pe7_APPZgoE", "label": "Zen Garden Spa Healing", "cat": "opening"}, {"id": "FU5H65jCSU", "label": "Reiki Zen Meditation Music", "cat": "opening"}, {"id": "kp7mvD1y-WE", "label": "Aurabowls Sound Bath", "cat": "opening"}, {"id": "GEmxDMP5xvg", "label": "Deuter 3 Hours Pure Peace", "cat": "opening"}, {"id": "imGaOIm5HOk", "label": "Yiruma - Kiss the Rain (official)", "cat": "bridge"}, {"id": "7maJOI3QMu0", "label": "Yiruma - River Flows in You (official)", "cat": "bridge"}, {"id": "fiBvOKmuWKg", "label": "Yiruma - River Flows in You (official 2)", "cat": "bridge"}, {"id": "I0et_hDtfxY", "label": "Yiruma - Kiss the Rain (official 5min)", "cat": "bridge"}, {"id": "qO_BGk0aEx0", "label": "Lee Jeonghyeok - piano for brother (1hr)", "cat": "bridge"}, {"id": "cmjr_LzdcBg", "label": "Riyandi - Piano for Brother", "cat": "bridge"}, {"id": "aOHHkbLm4rQ", "label": "relaxdaily N°045", "cat": "bridge"}, {"id": "NPBCbTZWnq0", "label": "Yiruma - River Flows in You (Rousseau)", "cat": "bridge"}, {"id": "9wxrB41PMhw", "label": "David Lanz - Cristofori's Dream", "cat": "classic"}, {"id": "hm8y6kzXwEU", "label": "David Lanz - Cristofori's Dream (remaster)", "cat": "classic"}, {"id": "pTzJO637ymA", "label": "Parijat - Inner Balance", "cat": "classic"}, {"id": "6S0TInctE8M", "label": "Parijat - Path of Silence", "cat": "classic"}, {"id": "ViInXVSHi7w", "label": "Parijat - Return to Yourself", "cat": "classic"}, {"id": "6gysVE_vCcU", "label": "Parijat - Reiki Healing Waves", "cat": "classic"}, {"id": "iqkgLhRThIE", "label": "Fiona Joy Hawkins - Grace", "cat": "classic"}, {"id": "luee_gL4F8g", "label": "Fiona Joy Hawkins - Grace (Deluxe)", "cat": "classic"}, {"id": "7R3H1fT1BHQ", "label": "Lisa Swerdlow - All Is Not Lost", "cat": "classic"}, {"id": "E5cITrQBlmw", "label": "Lisa Swerdlow - All Is Not Lost (Topic)", "cat": "classic"}, {"id": "sR2W2scFS4Y", "label": "Einaudi - Nuvole Bianche (official)", "cat": "neo"}, {"id": "CQ8zglIXZi8", "label": "Einaudi - Nuvole Bianche (audio)", "cat": "neo"}, {"id": "Lwpft9AgqmE", "label": "Einaudi - Una Mattina", "cat": "neo"}, {"id": "-8X_aMT5z0A", "label": "Einaudi - Una Mattina (Rousseau)", "cat": "neo"}, {"id": "VUCI-1vIbUo", "label": "Einaudi - Nuvole Bianche (live)", "cat": "neo"}, {"id": "AQS8bh7Q7TI", "label": "Kristin Hoffmann - Amazing Space", "cat": "neo"}, {"id": "fzfLHt0jImU", "label": "Rachael Yamagata - Something In the Rain", "cat": "neo"}, {"id": "o0LHz8j9o3Y", "label": "Lucinda Drayton - I Will Rise", "cat": "neo"}, {"id": "J2-QVo4YWdU", "label": "Ashley Davis - Wild Mountainside", "cat": "neo"}, {"id": "wkX2nFppLNQ", "label": "Ishq' Allah - Deva Premal & Miten", "cat": "mantra"}, {"id": "27ORb1DnSNo", "label": "Snatam Kaur - Gobinday Mukunday", "cat": "mantra"}, {"id": "PrS7eTkO5gM", "label": "Nirinjan Kaur - I Am", "cat": "mantra"}, {"id": "OZbD29J7FLM", "label": "I AM (Krishan Liquid Mix)", "cat": "mantra"}, {"id": "WsDKzulNW00", "label": "Mirabai Ceiba - Aad Guray Nameh", "cat": "mantra"}, {"id": "a8t3JMsEjHw", "label": "Mirabai Ceiba - Aad Guray Nameh 2", "cat": "mantra"}, {"id": "LbQ4zHxhoSI", "label": "Mirabai Ceiba - Guru Ram Das", "cat": "mantra"}, {"id": "wXbax5qveo4", "label": "Snatam Kaur & Peter Kater - Heart of the Universe", "cat": "mantra"}, {"id": "DfiigsRfoao", "label": "Peter Kater & Snatam Kaur - Just To Know You", "cat": "mantra"}, {"id": "MZ0h1sb1IFI", "label": "Devi Prayer - Hymn to the Divine Mother", "cat": "mantra"}, {"id": "ncjuqj0WN6s", "label": "Instrumental Christmas Piano (3h)", "cat": "xmas"}, {"id": "UJqzs7-0RXA", "label": "Relaxing Christmas Soft Piano", "cat": "xmas"}, {"id": "646k9QfzY2E", "label": "O Holy Night - piano cover", "cat": "xmas"}, {"id": "dwJ04_9LGrM", "label": "O Holy Night - Rousseau", "cat": "xmas"}, {"id": "XMgxfkwZL4k", "label": "O Holy Night looped album", "cat": "xmas"}, {"id": "iuwmrSlCvIY", "label": "Relaxing Christmas piano & fireplace", "cat": "xmas"}, {"id": "MhC90ReY49I", "label": "Silent Night - Rousseau", "cat": "xmas"}, {"id": "lH9tnZDGr6w", "label": "Minnz Piano Christmas 1h", "cat": "xmas"}, {"id": "3NycM9lYdRI", "label": "Soothing Relaxation piano", "cat": "cool"}, {"id": "o8GrqUSdzi0", "label": "Rain and soft piano", "cat": "cool"}, {"id": "dCvEgqePl84", "label": "Relaxing Harp Music", "cat": "cool"}, {"id": "KYsldfmeVZ8", "label": "Liquid Mind V: Serenity", "cat": "cool"}, {"id": "p6wFbdU4Tpc", "label": "Relaxing Harp Music (5h)", "cat": "cool"}, {"id": "ZnuPTeyvm2c", "label": "Ocean Harp Music", "cat": "cool"}, {"id": "Nb3okem4OCk", "label": "70 min 7 Chakra Singing Bowls", "cat": "bowl"}, {"id": "iT6w3cEkpm0", "label": "70 min Chakra Meditation bowls", "cat": "bowl"}, {"id": "TAESZsLJdVw", "label": "Crystal Chakra Meditation", "cat": "bowl"}, {"id": "lJP687Y4Kd8", "label": "Singing Bowls Healing 9h", "cat": "bowl"}, {"id": "JAB-zW_L080", "label": "Brett Van Donsel - Singing Bowl SoundScape", "cat": "bowl"}, {"id": "aVrOEr5pgxw", "label": "Tibetan Singing Bowl 10-min Intervals", "cat": "bowl"}, {"id": "unCya_-8ECs", "label": "10 Minute Crystal Bowl Meditation", "cat": "bowl"}, {"id": "wkX2nFppLNQ", "label": "Ishq' Allah", "cat": "vocal"}, {"id": "PrS7eTkO5gM", "label": "Nirinjan Kaur - I Am", "cat": "vocal"}, {"id": "27ORb1DnSNo", "label": "Gobinday Mukunday", "cat": "vocal"}, {"id": "WsDKzulNW00", "label": "Aad Guray Nameh", "cat": "vocal"}, {"id": "o0LHz8j9o3Y", "label": "Lucinda Drayton - I Will Rise", "cat": "vocal"}, {"id": "AQS8bh7Q7TI", "label": "Kristin Hoffmann - Amazing Space", "cat": "vocal"}, {"id": "MZ0h1sb1IFI", "label": "Devi Prayer", "cat": "vocal"}, {"id": "J2-QVo4YWdU", "label": "Ashley Davis - Wild Mountainside", "cat": "vocal"}, {"id": "7GoXVDH656g", "label": "Night crickets 12h", "cat": "nature"}, {"id": "0aay6rLcEdU", "label": "Forest Sounds at Night", "cat": "nature"}, {"id": "eTeD8DAta4c", "label": "Relaxing Rain Sounds", "cat": "nature"}, {"id": "U2a-RDhoxGI", "label": "Night Ambience Countryside", "cat": "nature"}, {"id": "dCvEgqePl84", "label": "Relaxing Harp Music", "cat": "harp"}, {"id": "ZqMN0g5gi2I", "label": "Baby's Music Box Lullabies", "cat": "harp"}, {"id": "mvxsLNFCVaw", "label": "Relaxing Music Box 1h", "cat": "harp"}, {"id": "Ern8qUpJzVk", "label": "Fantasy Harp Music", "cat": "harp"}, {"id": "xeOCmkrH3p8", "label": "Christmas Carol Music Box", "cat": "xmasc"}, {"id": "4PCYn8VjxwA", "label": "Christmas Songs Music Box", "cat": "xmasc"}, {"id": "dXAH4gpD5hg", "label": "Christmas Music Box Instrumental", "cat": "xmasc"}, {"id": "MhC90ReY49I", "label": "Silent Night - Rousseau", "cat": "xmasc"}];
+window.__results = [];
+let player = null, idx = 0, timer = null, startAt = 0, currentId = null;
+
+function rowFor(i, it){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${i+1}</td><td>${it.cat}</td><td>${it.id}</td><td>${(it.label||'').slice(0,58)}</td><td class="wait">·</td><td>0</td>`;
+  document.getElementById('tb').appendChild(tr);
+  return tr;
+}
+const rows = ITEMS.map((it,i)=>rowFor(i,it));
+
+function loadApi(){
+  const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+  window.onYouTubeIframeAPIReady = boot;
+}
+function boot(){
+  player = new YT.Player('player', {
+    height:'113', width:'200', videoId: ITEMS[0].id,
+    playerVars:{autoplay:0, controls:0, disablekb:1, modestbranding:1, playsinline:1, origin:location.origin},
+    events:{
+      onReady: ()=>{ player.mute(); next(0); },
+      onError: (e)=>{ finish(false, 'error '+e.data); },
+      onStateChange: (e)=>{
+        if(e.data === 1){ /* playing */ }
+        if(e.data === 0){ /* ended */ }
+      }
+    }
+  });
+}
+function next(i){
+  if(i >= ITEMS.length){ done(); return; }
+  idx = i; currentId = ITEMS[i].id;
+  startAt = Date.now();
+  rows[i].cells[4].textContent = '재생 중…'; rows[i].cells[4].className = 'wait';
+  window.__current = currentId;
+  player.loadVideoById({videoId: currentId, startSeconds: 0});
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    const ms = Date.now() - startAt;
+    rows[i].cells[5].textContent = (ms/1000).toFixed(1);
+    let st = -1, t = 0;
+    try { st = player.getPlayerState(); t = player.getCurrentTime(); } catch(e){}
+    if(st === 1 && t > 0.4) finish(true, 'playing '+t.toFixed(1)+'s');
+    else if(ms > 9000) finish(false, 'timeout state='+st);
+  }, 250);
+}
+function finish(ok, note){
+  clearInterval(timer);
+  const secs = (Date.now() - startAt)/1000;
+  const it = ITEMS[idx];
+  rows[idx].cells[4].textContent = (ok?'OK':'FAIL')+' · '+note;
+  rows[idx].cells[4].className = ok ? 'ok' : 'bad';
+  rows[idx].cells[5].textContent = secs.toFixed(1);
+  window.__results.push({id: it.id, cat: it.cat, title: it.label, ok, note, secs:+secs.toFixed(1)});
+  const okc = window.__results.filter(r=>r.ok).length;
+  document.getElementById('sum').textContent = `${window.__results.length}/${ITEMS.length} 검사 · OK ${okc} · FAIL ${window.__results.length-okc}`;
+  document.getElementById('out').value = JSON.stringify(window.__results);
+  setTimeout(()=>{ try{ player.stopVideo(); }catch(e){} next(idx+1); }, 350);
+}
+function done(){
+  document.getElementById('sum').textContent += ' — 완료';
+  window.__done = true;
+  document.title = 'DONE';
+}
+loadApi();
+</script></body></html>
