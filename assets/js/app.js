@@ -1161,7 +1161,7 @@
      그래서 미리듣기끼리, 수업 음악과 겹쳐 소리가 나는 일이 없습니다. */
   const pv = {
     player: null, ready: false, track: '', key: '', pending: '', playing: false,
-    fade: null, watchdog: null, probe: null, ad: false, ramped: false,
+    fade: null, watchdog: null, probe: null, boxTimer: null, ad: false, ramped: false,
     nudges: 0, live: 0, vol: 0, restore: null, hold: false, startedAt: 0
   };
 
@@ -1259,9 +1259,11 @@
     pv.key = key;
     pv.playing = false;
     pv.hold = false;
-    hidePvBox();
     ensurePreviewYT();
     syncPreviewUI();
+    /* 누른 뒤 12초 동안은 작은 플레이어를 띄워 둡니다 — 유튜브 광고가 나와도
+       그 자리에서 '건너뛰기'를 누를 수 있게. 곡이 바로 나오면 12초 뒤 사라집니다. */
+    openPvBoxWindow();
     if (!pv.ready) {
       pv.pending = y;
       if (!window.YT || !window.YT.Player) ensureYT();
@@ -1313,15 +1315,29 @@
     if (pv.playing) return;
     pv.playing = true;
     pv.hold = false;
-    hidePvBox();
+    if (Date.now() - pv.startedAt > 11000) hidePvBox();
     syncPreviewUI();
+  }
+
+  function openPvBoxWindow() {
+    const h = $('#ytPreviewHost');
+    if (!h) return;
+    h.classList.add('is-vis');
+    clearTimeout(pv.boxTimer);
+    pv.boxTimer = setTimeout(() => {
+      if (pv.hold) return;          // 아직 아무것도 시작되지 않았으면 그대로 보여 둡니다
+      hidePvBox();
+    }, 12000);
   }
 
   function showPvBox() {
     const h = $('#ytPreviewHost');
-    if (h) h.classList.add('is-vis');
+    if (!h || h.classList.contains('is-vis')) return;
+    openPvBoxWindow();
   }
   function hidePvBox() {
+    clearTimeout(pv.boxTimer);
+    pv.boxTimer = null;
     const h = $('#ytPreviewHost');
     if (h) h.classList.remove('is-vis');
   }
