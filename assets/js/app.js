@@ -1261,8 +1261,8 @@
     pv.hold = false;
     ensurePreviewYT();
     syncPreviewUI();
-    /* 누른 뒤 12초 동안은 작은 플레이어를 띄워 둡니다 — 유튜브 광고가 나와도
-       그 자리에서 '건너뛰기'를 누를 수 있게. 곡이 바로 나오면 12초 뒤 사라집니다. */
+    /* 누른 뒤 20초 동안은 작은 플레이어를 띄워 둡니다 — 유튜브 광고가 나와도
+       그 자리에서 '건너뛰기'를 누를 수 있게. 곡이 바로 나오면 20초 뒤 사라집니다. */
     openPvBoxWindow();
     if (!pv.ready) {
       pv.pending = y;
@@ -1315,7 +1315,7 @@
     if (pv.playing) return;
     pv.playing = true;
     pv.hold = false;
-    if (Date.now() - pv.startedAt > 11000) hidePvBox();
+    if (Date.now() - pv.startedAt > 19000) hidePvBox();
     syncPreviewUI();
   }
 
@@ -1327,7 +1327,7 @@
     pv.boxTimer = setTimeout(() => {
       if (pv.hold) return;          // 아직 아무것도 시작되지 않았으면 그대로 보여 둡니다
       hidePvBox();
-    }, 12000);
+    }, 20000);
   }
 
   function showPvBox() {
