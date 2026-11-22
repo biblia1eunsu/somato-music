@@ -255,7 +255,6 @@
     /* 수업 첫 곡 미리 열기(프리롤 광고를 수업 전에 소리 없이 소진) */
     preId: '', preState: 'idle', preAt: 0, preTimer: null,
     waitTimer: null,              // 유튜브 준비를 기다리는 타이머
-    adHold: false,                // 광고가 끝날 때까지 소리를 올리지 않습니다
     troubleTries: 0,              // 이 구간에서 재생에 실패한 횟수
     startBoxOn: false, boxTimer: null   // 수업 시작 때 잠깐 띄우는 유튜브 화면
   };
@@ -434,7 +433,7 @@
      (v23의 '광고 후 20초 → 내장 사운드' 규칙은 여기서 없앴습니다) */
   function watchPlayback() {
     clearInterval(yt.adTimer);
-    let waited = 0, maxCt = 0;
+    let waited = 0;
     yt.adTimer = setInterval(() => {
       if (owner !== 'youtube' || !yt.player) { clearInterval(yt.adTimer); yt.adTimer = null; return; }
       waited += 150;
@@ -453,22 +452,6 @@
         yt.volume = 0;
         setBadge('ad');
         return;
-      }
-      /* 수업 전에 미리 열어 둔 곡이 프리롤 광고 중이면, 광고가 끝날 때까지 소리를 올리지 않습니다.
-         IFrame API 는 광고 중에도 본 영상의 ID·길이를 돌려주기 때문에(실측) 재생 시간의 흐름으로 판별합니다.
-         · 광고가 끝나고 본 영상이 0초부터 흐르면 재생 시간이 뒤로 되돌아갑니다 → 그때 소리를 올립니다.
-         · 광고가 없었으면 state 가 1 이 되고 재생 시간이 3초 안쪽입니다 → 곧바로 올립니다. */
-      if (yt.adHold) {
-        maxCt = Math.max(maxCt, ct);
-        const rewound = maxCt > 5 && ct < maxCt - 5;
-        const musicNow = st === 1 && ct < 3;
-        if (!(rewound || musicNow || waited > 180000)) {
-          try { yt.player.setVolume(0); yt.player.mute(); } catch (e) {}
-          yt.volume = 0;
-          setBadge('ad');
-          return;
-        }
-        yt.adHold = false;
       }
       /* 재생 중인지 — 브라우저에 따라 상태값이 -1 로 남는 경우가 있어 재생 시간으로도 봅니다.
          소리는 본 영상이 흐르기 시작한 순간에 0.6초(첫 시작) / 0.9초(전환) 만에 올라옵니다. */
@@ -956,7 +939,6 @@
     $('#footStatus').textContent = '대기 중';
     fadeOutAll(fadeMs || FADE);
     yt.queue = [];
-    yt.adHold = false;
     hideStartBox();
     $('#nowCard') && $('#nowCard').classList.remove('is-playing');
     /* 대기 음악을 끄면 수업 첫 곡을 다시 미리 열어 둘 수 있습니다 (곧 수업을 시작할 때 광고가 끼지 않게) */
@@ -1120,9 +1102,8 @@
     yt.troubleTries = 0;
     clearInterval(yt.waitTimer); yt.waitTimer = null;
     clearInterval(yt.preTimer); yt.preTimer = null;
-    /* 대기 시간에 첫 곡을 미리 열어 두었는데 아직 프리롤 광고가 흐르고 있었다면,
-       광고가 끝날 때까지는 소리를 올리지 않습니다(광고 소리가 수업에 섮지 않게). */
-    yt.adHold = yt.preState === 'sweeping' && Date.now() - yt.preAt > 4000;
+    /** 대기 시간에 첫 곡을 미리 열어 두었고 그 안의 프리롤 광고까지 끝났으면(prewarmed)
+        곧바로 선곡한 곡이 흐릅니다. 끝나지 않았으면 잠깐 유튜브 화면을 띄워 광고를 건너뛸 수 있게 합니다. */
     const prewarmed = yt.preState === 'ready';
     yt.preState = 'idle';
     showScreen('class');
@@ -1134,14 +1115,17 @@
     if (state.ambientOn) endAmbientSoft();   // 대기 음악은 3.5초에 걸쳐 줄어들고 수업 음악이 그 위에서 서서히 올라옵니다
     ensureAudio();
     ensureYT();
-    if (!prewarmed && state.sourceMode !== 'builtin') showStartBox();
+    if (!prewarmed && state.sourceMode !== 'builtin') {
+      showStartBox();
+      toast('유튜브 광고가 나오면 작은 화면의 건너뛰기를 눌러 주세요.');
+    }
     enterSection(0, { noChime: true });
     if (state.chime) setTimeout(() => chime(), 900);
     requestWake();
     clearInterval(tickTimer);
     tickTimer = setInterval(tick, 400);
     tick();
-    $('#footStatus').textContent = yt.adHold ? '광고가 끝나면 선곡한 음악이 흐릅니다' : '수업 진행 중';
+    $('#footStatus').textContent = '수업 진행 중';
     savePrefs();
   }
 
@@ -1153,7 +1137,6 @@
     showScreen('done');
     if (bodyscanOn) setBodyscan(false, { quiet: true, skipResume: true });
     fadeOutAll(1800);
-    yt.adHold = false;
     yt.preState = 'idle';
     clearInterval(yt.waitTimer); yt.waitTimer = null;
     releaseWake();
@@ -2006,7 +1989,6 @@
       showScreen('idle');
       document.title = '소마토센서리 요가 · 클래스 음악';
       renderIdlePlan(); renderIdleChoices();
-      yt.adHold = false;
       yt.preState = 'idle';
       setTimeout(warmFirstTrack, 500);
     });
