@@ -813,7 +813,7 @@
       const b = e.target.closest('.theme-item');
       if (!b) return;
       state.theme = b.dataset.theme; savePrefs();
-      renderThemeSheet(); renderIdleChoices();
+      renderThemeSheet(); renderIdleChoices(); renderIdlePlan();
       $('#themePillLabel').textContent = FLOW_THEMES[state.theme].short;
       if (mode === 'class' && plan[activeIndex] && plan[activeIndex].id === 'flow') {
         enterSection(activeIndex);
