@@ -254,7 +254,7 @@
     const sec = plan[activeIndex] || {};
     const eng = ensureAudio();
     yt.playingBuiltin = true;
-    eng.start(sec.texture || 'waiting', {});
+    eng.start(sectionTexture(sec), {});
     $('#sourceBadge').textContent = '광고 · 내장 사운드';
     $('#sourceBadge').classList.add('is-builtin');
   }
@@ -326,11 +326,22 @@
     return true;
   }
 
+  /* 사바아사나는 고른 풀의 결로 내장 사운드를 맞춥니다. */
+  function sectionTexture(sec) {
+    if (!sec) return 'waiting';
+    if (sec.id === 'savasana') {
+      const p = state.pool === 'random' ? todayPool() : state.pool;
+      return (SAVA_POOLS[p] && SAVA_POOLS[p].texture) || 'sava-bowl';
+    }
+    return sec.texture || 'waiting';
+  }
+
   function startBuiltin(texture, label) {
     const eng = ensureAudio();
     yt.playingBuiltin = true;
     if (yt.player) ytFadeTo(0, 700);
     eng.start(texture, { firstBowl: false });
+    if (yt.player && !yt.adBuiltin) setTimeout(() => { try { yt.player.pauseVideo(); } catch (e) {} }, 900);
     $('#sourceBadge').textContent = '내장 사운드';
     $('#sourceBadge').classList.add('is-builtin');
     $('#nowCard').classList.add('is-playing');
@@ -385,7 +396,7 @@
     yt.errors = 0;
     clearWatchdog();
     const sec = plan[activeIndex] || {};
-    startBuiltin(sec.texture || 'waiting');
+    startBuiltin(sectionTexture(sec));
     if (msg) toast(msg);
     $('#footStatus').textContent = '내장 사운드 재생 중';
   }
@@ -402,7 +413,7 @@
     if (!cur || cur.failed) { fallbackToBuiltin(); return; }
     if (state.sourceMode === 'builtin' || !yt.ready) {
       const sec = plan[activeIndex] || {};
-      startBuiltin(sec.texture || 'waiting');
+      startBuiltin(sectionTexture(sec));
       return;
     }
     ytPlayTrack(cur);
@@ -414,7 +425,7 @@
     const cur = yt.queue[yt.qi];
     if (state.sourceMode === 'builtin' || !yt.ready) {
       const sec = plan[activeIndex] || {};
-      startBuiltin(sec.texture || 'waiting');
+      startBuiltin(sectionTexture(sec));
       return;
     }
     ytPlayTrack(cur);
@@ -430,18 +441,18 @@
 
     if (yt.queue.length === 0) {
       const sec = plan[activeIndex] || {};
-      startBuiltin((sec && sec.texture) || 'waiting');
+      startBuiltin(sectionTexture(sec));
       return;
     }
     if (state.sourceMode === 'builtin') {
       const sec = plan[activeIndex] || {};
-      startBuiltin(sec.texture || 'waiting');
+      startBuiltin(sectionTexture(sec));
       renderNext();
       return;
     }
     if (!yt.ready) {
       const sec = plan[activeIndex] || {};
-      startBuiltin(sec.texture || 'waiting');
+      startBuiltin(sectionTexture(sec));
       ensureYT();
       renderNext();
       return;
@@ -489,6 +500,12 @@
         <span class="p-dots"></span>
         <span class="p-time">${s.min}분</span>
       </li>`).join('');
+  }
+
+  function updateSourcePill() {
+    const builtin = state.sourceMode === 'builtin';
+    $('#sourcePill').setAttribute('aria-pressed', String(builtin));
+    $('#sourcePillLabel').textContent = builtin ? '내장 사운드' : '유튜브';
   }
 
   function renderIdleChoices() {
@@ -635,7 +652,7 @@
       $('#nowCard').classList.add('is-playing');
       if (yt.playingBuiltin || state.sourceMode === 'builtin' || !yt.ready) {
         const sec = plan[activeIndex];
-        startBuiltin(sec.texture);
+        startBuiltin(sectionTexture(sec));
       } else if (yt.player) {
         try { yt.player.playVideo(); } catch (e) {}
       }
@@ -814,6 +831,15 @@
       if (state.wake) requestWake(); else releaseWake();
     });
     $('#themePill').addEventListener('click', () => { renderThemeSheet(); openSheet('sheetTheme'); });
+    $('#sourcePill').addEventListener('click', () => {
+      state.sourceMode = state.sourceMode === 'builtin' ? 'auto' : 'builtin';
+      savePrefs();
+      updateSourcePill();
+      $('#sourceSelect').value = state.sourceMode;
+      if (mode === 'class') playSection(activeIndex);
+      if (mode === 'idle' && state.ambientOn) playAmbient();
+      toast(state.sourceMode === 'builtin' ? '내장 힐링 사운드로 재생합니다.' : '유튜브 음원으로 재생합니다.');
+    });
 
     $('#idleThemeChip').addEventListener('click', () => { renderThemeSheet(); openSheet('sheetTheme'); });
     $('#idleSavaChip').addEventListener('click', () => { renderThemeSheet(); openSheet('sheetTheme'); });
@@ -852,6 +878,7 @@
 
     $('#sourceSelect').addEventListener('change', (e) => {
       state.sourceMode = e.target.value; savePrefs();
+      updateSourcePill();
       if (mode === 'class') playSection(activeIndex);
       if (mode === 'idle' && state.ambientOn) playAmbient();
     });
@@ -906,6 +933,7 @@
     renderSettings();
     $('#volume').value = state.volume;
     $('#chimePill').setAttribute('aria-pressed', String(!!state.chime));
+    updateSourcePill();
     $('#wakePill').setAttribute('aria-pressed', String(!!state.wake));
     bind();
     ensureYT();
