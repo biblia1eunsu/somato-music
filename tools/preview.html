@@ -15,14 +15,18 @@
 </style>
 </head>
 <body>
-  <div class="phone"><iframe id="f" src="../index.html"></iframe></div>
+  <div class="phone"><iframe id="f" src="about:blank"></iframe></div>
   <div class="cap">somato-music · device preview</div>
   <script>
     const p = new URLSearchParams(location.search);
     const w = Number(p.get('w')) || 390, h = Number(p.get('h')) || 844;
     const f = document.getElementById('f');
     f.style.width = w + 'px'; f.style.height = h + 'px';
-    if (p.get('dark') === '1') f.src = '../index.html?dark=1';
+    const qs = [];
+    if (p.get('dark') === '1') qs.push('dark=1');
+    if (p.get('theme')) qs.push('theme=' + p.get('theme'));
+    qs.push('cb=' + Date.now());
+    f.src = '../index.html?' + qs.join('&');
   </script>
 </body>
 </html>
