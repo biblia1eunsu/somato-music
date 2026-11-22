@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube 임베드 검증 v6</title>
+<style>
+body{font:13px/1.5 -apple-system,system-ui,sans-serif;background:#111;color:#eee;margin:0;padding:14px}
+h1{font-size:15px;font-weight:600;margin:0 0 6px}
+p{color:#9b9b9b;margin:0 0 12px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{border-bottom:1px solid #262626;padding:4px 6px;text-align:left;vertical-align:top}
+.ok{color:#6ee7a0}.bad{color:#ff7a7a}.wait{color:#c9c9c9}
+#player{position:fixed;right:6px;bottom:6px;width:180px;height:101px;opacity:.15;pointer-events:none}
+#sum{margin:8px 0;color:#ccc;font-weight:600}
+</style></head><body>
+<h1>YouTube 임베드 검증 v6</h1>
+<p>임베드가 막힌 영상은 플레이어가 101/150/2/5/100 오류를 냅니다. 오류 없이 제목·길이가 로드되면 통과로 봅니다.</p>
+<div id="sum">대기 중…</div>
+<table><thead><tr><th>#</th><th>구간</th><th>ID</th><th>제목</th><th>결과</th><th>초</th></tr></thead><tbody id="tb"></tbody></table>
+<div id="player"></div>
+<script>
+const ITEMS = [{"id": "lbjZPFBD6JU", "label": "Norah Jones Come Away (기존 후보)", "cat": "song"}, {"id": "rZbhDOC7oyI", "label": "Norah Jones Come Away (공식 2)", "cat": "song"}, {"id": "Am6ys1Vh54U", "label": "Norah Jones Come Away (공식 3)", "cat": "song"}, {"id": "hCrtcVDgCGw", "label": "SLANDER Love Is Gone acoustic (기존 후보)", "cat": "song"}, {"id": "9TkzaeSUcYU", "label": "SLANDER Love Is Gone (lyric)", "cat": "song"}, {"id": "hsLiJP2rqS8", "label": "Luke Chiang Shouldn't Be (기존 후보)", "cat": "song"}, {"id": "saiPRYqC29g", "label": "Einaudi Una Mattina (공식)", "cat": "neo"}, {"id": "iODv4ZOaieQ", "label": "Sakamoto Aqua (공식 2)", "cat": "neo"}, {"id": "W51tXJ1YwuA", "label": "Sakamoto Aqua (공식 3)", "cat": "neo"}, {"id": "Lwpft9AgqmE", "label": "Einaudi Una Mattina (재검)", "cat": "neo"}, {"id": "IHhJURATDQI", "label": "Sakamoto Aqua (재검)", "cat": "neo"}];
+const LIMIT = 9000;
+window.__results = []; window.__done = false;
+let player = null, idx = 0, timer = null, startAt = 0, lastError = null;
+const rows = ITEMS.map((it, i) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${i+1}</td><td>${it.cat}</td><td>${it.id}</td><td>${(it.label||'').slice(0,46)}</td><td class="wait">·</td><td>0</td>`;
+  document.getElementById('tb').appendChild(tr);
+  return tr;
+});
+window.onYouTubeIframeAPIReady = function(){
+  player = new YT.Player('player', {
+    height:'101', width:'180', videoId: ITEMS[0].id,
+    playerVars:{autoplay:0, controls:0, disablekb:1, modestbranding:1, playsinline:1, origin:location.origin},
+    events:{
+      onReady: ()=>{ try{player.mute();}catch(e){} next(0); },
+      onError: (e)=>{ lastError = e.data; }
+    }
+  });
+};
+function loadApi(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api';
+  s.onerror=()=>{document.getElementById('sum').textContent='IFrame API 로드 실패';}; document.head.appendChild(s); }
+function next(i){
+  if (i >= ITEMS.length) { done(); return; }
+  idx = i; lastError = null; startAt = Date.now();
+  rows[i].cells[4].textContent = '확인 중…'; rows[i].cells[4].className='wait';
+  try { player.loadVideoById({videoId: ITEMS[i].id, startSeconds: 0}); } catch(e){ finish(false,'load '+e); return; }
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    const ms = Date.now() - startAt;
+    rows[i].cells[5].textContent = (ms/1000).toFixed(1);
+    let dur = 0, title = '', st = -1;
+    try { dur = player.getDuration() || 0; title = ((player.getVideoData()||{}).title)||''; st = player.getPlayerState(); } catch(e){}
+    if (lastError != null) { finish(false, 'error ' + lastError); return; }
+    if (dur > 0 && title) { finish(true, 'embed ok · ' + Math.round(dur) + 's'); return; }
+    if (ms > LIMIT) { finish(false, 'timeout dur=' + Math.round(dur)); }
+  }, 250);
+}
+function finish(ok, note){
+  if (rows[idx].cells[4].textContent.startsWith('OK') || rows[idx].cells[4].textContent.startsWith('FAIL')) return;
+  clearInterval(timer);
+  const secs = (Date.now() - startAt)/1000;
+  const it = ITEMS[idx];
+  let vtitle=''; try { vtitle = ((player.getVideoData()||{}).title)||''; } catch(e){}
+  rows[idx].cells[4].textContent = (ok?'OK':'FAIL')+' · '+note;
+  rows[idx].cells[4].className = ok ? 'ok' : 'bad';
+  rows[idx].cells[5].textContent = secs.toFixed(1);
+  window.__results.push({id: it.id, cat: it.cat, label: it.label, ok, note, secs:+secs.toFixed(1), vtitle});
+  const okc = window.__results.filter(r=>r.ok).length;
+  document.getElementById('sum').textContent = `${window.__results.length}/${ITEMS.length} · OK ${okc} · FAIL ${window.__results.length-okc}`;
+  setTimeout(()=>next(idx+1), 120);
+}
+function done(){ window.__done = true;
+  const okc = window.__results.filter(r=>r.ok).length;
+  document.getElementById('sum').textContent = `완료 — ${ITEMS.length}개 중 OK ${okc} · FAIL ${ITEMS.length-okc}`;
+  try { player.stopVideo(); } catch(e){}
+}
+loadApi();
+</script>
+</body></html>
