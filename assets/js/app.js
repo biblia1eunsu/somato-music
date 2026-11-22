@@ -188,10 +188,12 @@
     while (pinN < list.length && pinSet.has(list[pinN].y)) pinN++;
     return { list: list, pinN: pinN, all: out };
   }
-  /* 재생 목록 — 앞에 고정한 곡은 순서를 지키고 그 뒤만 섞습니다 */
+  /* 재생 목록 — 앞에 고정한 곡은 순서를 지키고 그 뒤만 섞습니다.
+     고정한 곡이 없으면 원래 큐레이션의 첫 곡을 지킵니다. */
   function queuedList(key) {
     const o = orderedTracks(key);
-    return o.list.slice(0, o.pinN).concat(shuffle(o.list.slice(o.pinN)));
+    const headN = o.pinN > 0 ? o.pinN : Math.min(1, o.list.length);
+    return o.list.slice(0, headN).concat(shuffle(o.list.slice(headN)));
   }
 
   function pinCount(key) {
