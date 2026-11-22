@@ -410,14 +410,14 @@
 
   /* 수업 첫 곡을 미리 열어 두지 못했을 때만, 시작 직후 잠깐 유튜브 화면을 작게 띄웁니다.
      유튜브 프리롤 광고가 나오면 그 자리에서 '건너뛰기'를 누를 수 있게 하기 위해서입니다.
-     곡이 바로 흐르기 시작하면 1.5초 뒤 사라집니다. */
+     곡이 처음부터 흐르면 2.5초 뒤 사라지고, 광고일 때는 45초까지 남아 둡니다. */
   function showStartBox() {
     const h = $('#ytHost');
     if (!h) return;
     h.classList.add('is-vis');
     yt.startBoxOn = true;
     clearTimeout(yt.boxTimer);
-    yt.boxTimer = setTimeout(hideStartBox, 20000);
+    yt.boxTimer = setTimeout(hideStartBox, 45000);
   }
   function hideStartBox() {
     clearTimeout(yt.boxTimer); yt.boxTimer = null;
