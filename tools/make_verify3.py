@@ -80,7 +80,11 @@ function next(i){
     if (isAd) show(i, i, '광고 대기…', 'ad');
     // 광고가 나온다는 것은 임베드 재생이 허용된 영상이라는 뜻입니다 (101/150 은 광고도 못 띄웁니다)
     if (isAd && ms > 1500) finish(true, 'ad→playable');
-    else if(st === 1 && t > 0.5 && !isAd) finish(true, 'playing '+t.toFixed(1)+'s');
+    else {
+      // 광고가 끈 뒤 unstarted/paused 면 다시 재생 (앱 본체와 같은 보정)
+      if ((st === -1 || st === 2) && ms > 2500 && !isAd) { try { player.playVideo(); } catch(e){} }
+      if(st === 1 && t > 0.5 && !isAd) finish(true, 'playing '+t.toFixed(1)+'s');
+    }
     else if(ms > TIMEOUT) finish(false, 'timeout state='+st+' dur='+Math.round(dur), isAd);
   }, 250);
 }
