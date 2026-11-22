@@ -362,10 +362,11 @@
     yt.adTimer = setInterval(() => {
       if (owner !== 'youtube' || !yt.player) { clearInterval(yt.adTimer); yt.adTimer = null; return; }
       waited += 500;
-      let dur = 0, st = -1, vid = '';
+      let dur = 0, st = -1, vid = '', ct = 0;
       try {
         dur = yt.player.getDuration() || 0;
         st = yt.player.getPlayerState();
+        ct = yt.player.getCurrentTime() || 0;
         const vd = yt.player.getVideoData ? (yt.player.getVideoData() || {}) : {};
         vid = vd.video_id || '';
       } catch (e) { return; }
@@ -377,7 +378,8 @@
         setBadge('ad');
         return;
       }
-      if (dur >= 100 && (st === 1 || st === 3)) {
+      /* 재생 중인지 — 브라우저에 따라 상태값이 -1 로 남는 경우가 있어 재생 시간으로도 봅니다 */
+      if (dur >= 100 && (st === 1 || st === 3 || ct > 0.5)) {
         /* 본 영상이 실제로 흐르기 시작한 순간에만 소리를 냅니다 */
         setBadge('youtube');
         try { yt.player.unMute(); } catch (e) {}
@@ -401,9 +403,9 @@
     yt.watchdog = setTimeout(() => {
       yt.watchdog = null;
       if (owner !== 'youtube' || !yt.player) return;
-      let st = -1;
-      try { st = yt.player.getPlayerState(); } catch (e) { return; }
-      if (st === 1) return;                     // 재생 중 — 광고 포함
+      let st = -1, ct = 0;
+      try { st = yt.player.getPlayerState(); ct = yt.player.getCurrentTime() || 0; } catch (e) { return; }
+      if (st === 1 || ct > 1) return;           // 실제로 재생 중 — 광고 포함
       if (st === 3 && (yt.bufferWaits || 0) < 3) {
         yt.bufferWaits = (yt.bufferWaits || 0) + 1;   // 버퍼링 — 조금 더 지켜봅니다
         armWatchdog(12000);
