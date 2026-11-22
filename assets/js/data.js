@@ -6,7 +6,7 @@
    · 1시간짜리 모음 · 분위기가 튀는 실험적 앰비언트 · 저음질 비공식 업로드는 걷어냈습니다
    ───────────────────────────────────────────────────────────── */
 window.SOMATO_DATA = {
-  version: '4.0.0',
+  version: '5.0.0',
 
   tracks: {
     /* 수업 전 · 수업 후 대기 — 이루마 · 리정혁 · Lisa Swerdlow · Fiona Joy Hawkins */
@@ -36,16 +36,19 @@ window.SOMATO_DATA = {
       { t: "Kiss of a Rose", a: "Deuter", y: "9Y_gigLpilk" }
     ],
 
-    /* 피아노 브릿지 — 이루마 · David Lanz · 리정혁 */
-    bridge: [
-      { t: "Kiss the Rain", a: "이루마 Yiruma", y: "imGaOIm5HOk" },
-      { t: "Cristofori's Dream (Remastered)", a: "David Lanz", y: "hm8y6kzXwEU" },
-      { t: "piano for brother (형을 위한 노래)", a: "리정혁 Lee Jeonghyeok", y: "SmDD-3C5PNY" },
-      { t: "River Flows in You", a: "이루마 Yiruma", y: "7maJOI3QMu0" },
-      { t: "May Be", a: "이루마 Yiruma", y: "05Cax-OCtPw" },
-      { t: "Wait There", a: "이루마 Yiruma", y: "Ox23mWkDhMk" },
-      { t: "Poem+ (시처럼)", a: "이루마 Yiruma", y: "_R0Ix90hFu8" },
-      { t: "Kiss the Rain (Orchestra)", a: "이루마 Yiruma", y: "1e07OAWvWkQ" }
+    /* 호흡 (3분) — 호흡을 길고 고요하게 내려놓는 음악
+       플룻 · 앰비언트 · 느린 명상 피아노만 담았습니다. 빠른 피아노 곡은 호흡 파트에서 뺐습니다. */
+    breath: [
+      { t: "Tonglen", a: "Deuter", y: "FcMhSNiG59U" },
+      { t: "Koyasan", a: "Deuter", y: "Drk-0Laarjc" },
+      { t: "East of the Full Moon", a: "Deuter", y: "7RLstyPt5gs" },
+      { t: "Language of Silence", a: "Deuter", y: "rr9qqbu0rSo" },
+      { t: "Olive Grove", a: "Deuter", y: "9kRtfbGpx7A" },
+      { t: "Serenity", a: "Liquid Mind", y: "78fcz7oNHmo" },
+      { t: "Hymn for Peace", a: "Liquid Mind", y: "187iIfm_Mvw" },
+      { t: "Meditation Impromptu 01", a: "Kevin MacLeod", y: "emqdD0D4RyE" },
+      { t: "Meditation Impromptu 02", a: "Kevin MacLeod", y: "1vBzDk7cSjE" },
+      { t: "Return to Your Body", a: "Parijat", y: "z0-LJaFbKsQ" }
     ],
 
     /* 컴다운 — Liquid Mind · Parijat · Kevin MacLeod · 하프 */
@@ -207,13 +210,6 @@ window.SOMATO_DATA = {
         { t: "Carol of the Bells", a: "Rousseau", y: "Z3bNAvaQihA" },
         { t: "Silent Night", a: "Rousseau", y: "MhC90ReY49I" }
       ]
-    },
-
-    /* 마무리 1분 */
-    closing: [
-      { t: "Serenity", a: "Liquid Mind", y: "78fcz7oNHmo" },
-      { t: "Hymn for Peace", a: "Liquid Mind", y: "187iIfm_Mvw" },
-      { t: "Evening Fall (Harp)", a: "Kevin MacLeod", y: "8TYO4Css6tE" }
-    ]
+    }
   }
 }

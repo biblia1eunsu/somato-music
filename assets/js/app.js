@@ -19,8 +19,9 @@
   const AMBIENT_SCALE = 0.68;   // 대기 음악은 설정 볼륨의 68%로 더 은은하게
   const VOLUME_CURVE = 2;       // 62% → 42% 로 낮춘 기본 볼륨 (한 번만 적용)
   const DEFAULT_PREFS = {
-    theme: 'classic', bridge: 4, pool: 'random', volume: 42,
-    sourceMode: 'auto', chime: true, wake: true, dark: false, custom: {}, volCurve: VOLUME_CURVE
+    theme: 'classic', savaMin: 10, pool: 'random', volume: 42,
+    sourceMode: 'auto', chime: true, wake: true, dark: false, custom: {}, volCurve: VOLUME_CURVE,
+    excluded: {}, pins: {},
   };
 
   const state = Object.assign({}, DEFAULT_PREFS);
@@ -40,6 +41,9 @@
       if (raw) Object.assign(state, JSON.parse(raw));
     } catch (e) {}
     if (!state.custom || typeof state.custom !== 'object') state.custom = {};
+    if (!state.excluded || typeof state.excluded !== 'object') state.excluded = {};
+    if (!state.pins || typeof state.pins !== 'object') state.pins = {};
+    state.savaMin = Number(state.savaMin) === 5 ? 5 : 10;
     /* 이미 62%로 저장해 두신 기기에서도 한 번만 더 낮춘 볼륨으로 맞춥니다 */
     if (state.volCurve !== VOLUME_CURVE) {
       const prev = Number(state.volume);
@@ -99,21 +103,18 @@
   };
 
   function buildPlan() {
-    const b = state.bridge || 4;
-    const flow = 30 - (b - 4);
+    const sava = state.savaMin === 5 ? 5 : 10;
     return [
-      { id: 'opening', name: '오프닝', en: 'OPENING', min: 10,
-        desc: '호흡을 바닥으로 내려놓는 시간', texture: 'opening' },
-      { id: 'bridge', name: '피아노 브릿지', en: 'PIANO BRIDGE', min: b,
-        desc: '이루마의 결로 잠깐 쉬어가는 피아노', texture: 'bridge' },
-      { id: 'flow', name: '메인 플로우', en: 'MAIN FLOW', min: flow,
+      { id: 'opening', name: '오프닝', en: 'OPENING', min: 15,
+        desc: '호흡을 바닥으로 내려놓는 15분', texture: 'opening' },
+      { id: 'breath', name: '호흡', en: 'BREATH', min: 3,
+        desc: '들이쉬고 내쉬는 3분, 피아노 한 곡', texture: 'breath' },
+      { id: 'flow', name: '메인 플로우', en: 'MAIN FLOW', min: 30,
         desc: FLOW_THEMES[state.theme].desc, texture: FLOW_THEMES[state.theme].texture },
-      { id: 'cooldown', name: '컴다운', en: 'COOLDOWN', min: 10,
-        desc: '심박을 천천히 가라앉히는 시간', texture: 'cooldown' },
-      { id: 'savasana', name: '사바아사나', en: 'SAVASANA', min: 5,
-        desc: '몸이 스스로 회복하는 시간', texture: 'sava-bowl' },
-      { id: 'closing', name: '마무리', en: 'CLOSING', min: 1,
-        desc: '조용히 호흡을 되찾고 일어나는 시간', texture: 'closing' }
+      { id: 'cooldown', name: '컴다운', en: 'COOLDOWN', min: 30,
+        desc: '심박을 천천히 가라앉히는 30분', texture: 'cooldown' },
+      { id: 'savasana', name: '사바아사나', en: 'SAVASANA', min: sava,
+        desc: '몸이 스스로 회복하는 시간', texture: 'sava-bowl' }
     ];
   }
 
@@ -151,8 +152,50 @@
     const arr = (state.custom && state.custom[key]) || [];
     return arr.map((c) => ({ t: c.t || '추가한 곡', a: '직접 추가', y: c.y, custom: true }));
   }
-  function tracksFor(key) {
+  /* ── 선곡 관리 ────────────────────────────────
+     state.pins[key]     = 맨 앞에 세울 곡 ID 순서
+     state.excluded[key] = 수업에서 뺀 곡 ID (localStorage 저장)
+     순서: 직접 추가한 곡 → 고정한 곡 → 기본 큐레이션 순 */
+  function rawTracks(key) {
     return customTracks(key).concat(baseTracks(key));
+  }
+  function pinsOf(key) {
+    const arr = (state.pins && state.pins[key]) || [];
+    return Array.isArray(arr) ? arr : [];
+  }
+  function excludedOf(key) {
+    const arr = (state.excluded && state.excluded[key]) || [];
+    return Array.isArray(arr) ? arr : [];
+  }
+  function isExcluded(key, y) {
+    return excludedOf(key).indexOf(y) !== -1;
+  }
+  function orderedTracks(key) {
+    const all = rawTracks(key);
+    const seen = new Set();
+    const out = [];
+    const push = (t) => {
+      if (!t || !t.y || seen.has(t.y)) return;
+      seen.add(t.y);
+      out.push(t);
+    };
+    pinsOf(key).forEach((id) => push(all.filter((t) => t.y === id)[0]));
+    all.forEach(push);
+    const kept = out.filter((t) => !isExcluded(key, t.y));
+    const list = kept.length ? kept : out;   // 한 파트의 모든 곡을 뺀 때만 안전 fallback
+    const pinSet = new Set(pinsOf(key));
+    let pinN = 0;
+    while (pinN < list.length && pinSet.has(list[pinN].y)) pinN++;
+    return { list: list, pinN: pinN, all: out };
+  }
+  /* 재생 목록 — 앞에 고정한 곡은 순서를 지키고 그 뒤만 섞습니다 */
+  function queuedList(key) {
+    const o = orderedTracks(key);
+    return o.list.slice(0, o.pinN).concat(shuffle(o.list.slice(o.pinN)));
+  }
+
+  function pinCount(key) {
+    return orderedTracks(key).pinN;
   }
   function keyForSection(sec, index) {
     if (sec.id === 'flow') return 'flow:' + state.theme;
@@ -168,11 +211,12 @@
   }
   /* 오늘의 랜덤 추천 — 감성곡과 가사 없는 힐링곡이 번갈아 섞인 대기열 */
   function savaMixList() {
-    const song = tracksFor('savasana:song');   // 첫 곡은 큐레이션 순서(소향 Wind Song)를 지킵니다
-    const calm = shuffle(tracksFor('savasana:piano')
-      .concat(tracksFor('savasana:bowl'), tracksFor('savasana:vocal')));
-    const rest = shuffle(song.slice(1));
-    const out = [song[0]];
+    const song = queuedList('savasana:song');   // 고정한 곡 · 첫 곡은 큐레이션 순서를 지킵니다
+    const calm = shuffle(queuedList('savasana:piano')
+      .concat(queuedList('savasana:bowl'), queuedList('savasana:vocal')));
+    const rest = song.slice(1);
+    const out = [];
+    if (song[0]) out.push(song[0]);
     const n = Math.max(rest.length, calm.length);
     for (let i = 0; i < n; i++) {
       if (rest[i]) out.push(rest[i]);
@@ -488,6 +532,7 @@
     const map = {
       waiting: ['대기 음악', '맑은 하프 아르페지오'],
       opening: ['그라운딩 피아노', '느린 펠트 건반'],
+      breath: ['호흡 피아노', '느린 아르페지오'],
       bridge: ['펠트 피아노', '느린 아르페지오'],
       'flow-classic': ['뉴에이지 하프', '잔잔한 아르페지오'],
       'flow-neo': ['네오클래식 피아노', '맑은 건반'],
@@ -655,9 +700,8 @@
 
   function playPool(key, opts) {
     yt.currentKey = key;
-    const list = key === 'savasana:mix' ? savaMixList() : tracksFor(key);
-    // 첫 곡은 큐레이션 순서를 지키고, 그 뒤만 섞습니다.
-    yt.queue = list.length ? [list[0]].concat(shuffle(list.slice(1))) : [];
+    const list = key === 'savasana:mix' ? savaMixList() : queuedList(key);
+    yt.queue = list;
     yt.qi = 0;
     yt.errors = 0;
 
@@ -683,11 +727,9 @@
     renderNext();
   }
 
-  /* 대기 음악 첫 곡은 늘 같습니다 (맑은 피아노 한 곡으로 시작) — 그 뒤만 섞습니다 */
+  /* 대기 음악 — 고정한 곡(첫 곡)이 있으면 그 순서를 지키고 그 뒤만 섞습니다 */
   function waitList() {
-    const base = tracksFor('wait');
-    if (!base.length) return [];
-    return [base[0]].concat(shuffle(base.slice(1)));
+    return queuedList('wait');
   }
 
   function playAmbient(resume) {
@@ -765,20 +807,71 @@
 
   function renderIdleChoices() {
     $('#idleThemeValue').textContent = FLOW_THEMES[state.theme].name;
+    $('#idleLenValue').textContent = (state.savaMin === 5 ? 5 : 10) + '분';
     $('#idleSavaValue').textContent = state.pool === 'random'
       ? '오늘의 랜덤 추천 · 감성곡 + 힐링곡' : SAVA_POOLS[state.pool].name;
     $('#themePillLabel').textContent = FLOW_THEMES[state.theme].short;
+    renderSavaLenPickers();
+  }
+
+  /* 사바아사나 5분 / 10분 — 설정 시트와 수업 중 패널에서 함께 바뀝니다 */
+  function renderSavaLenPickers() {
+    const min = state.savaMin === 5 ? 5 : 10;
+    $$('#savaLenSetting button, #savaLenPicker button').forEach((b) => {
+      b.classList.toggle('is-on', Number(b.dataset.min) === min);
+    });
+  }
+
+  function setSavaMin(min) {
+    min = Number(min) === 5 ? 5 : 10;
+    if (state.savaMin === min && mode !== 'class') { renderSavaLenPickers(); return; }
+    state.savaMin = min;
+    savePrefs();
+    plan = buildPlan();
+    renderIdlePlan();
+    renderIdleChoices();
+    renderSegments();
+    updateSegments(activeIndex);
+    if (mode === 'class') {
+      const sec = plan[activeIndex];
+      if (sec && sec.id === 'savasana') {
+        $('#sectionDesc').textContent = savaDesc();
+        $('#savaPanel').hidden = false;
+      }
+      tick();
+    }
+    toast('사바아사나 ' + min + '분으로 맞쳤습니다.');
+  }
+
+  function savaDesc() {
+    return state.pool === 'random'
+      ? '감성곡 + 가사 없는 힐링곡이 번갈아 흐릅니다'
+      : SAVA_POOLS[state.pool].name;
   }
 
   function renderSegments() {
     const wrap = $('#segments');
     wrap.innerHTML = plan.map((s) => `<i style="flex-grow:${s.min}"></i>`).join('');
+    renderJump();
+  }
+
+  /* 상단 구간 타임라인 — 60분 수업에서는 여기를 눌러 필요한 구간으로 바로 넘어갑니다 */
+  function renderJump() {
+    const row = $('#jumpRow');
+    if (!row) return;
+    row.innerHTML = plan.map((s, i) =>
+      `<button type="button" class="jump-chip" data-i="${i}">${s.name}<span>${s.min}</span></button>`
+    ).join('');
   }
 
   function updateSegments(idx) {
     $$('#segments i').forEach((el, i) => {
       el.classList.toggle('done', i < idx);
       el.classList.toggle('active', i === idx);
+    });
+    $$('#jumpRow .jump-chip').forEach((el, i) => {
+      el.classList.toggle('is-on', i === idx);
+      el.classList.toggle('is-done', i < idx);
     });
   }
 
@@ -793,9 +886,7 @@
     let desc = sec.desc;
     if (sec.id === 'flow') desc = FLOW_THEMES[state.theme].desc;
     if (sec.id === 'savasana') {
-      desc = state.pool === 'random'
-        ? '감성곡 + 가사 없는 힐링곡이 번갈아 흐릅니다'
-        : SAVA_POOLS[state.pool].name;
+      desc = savaDesc();
     }
     $('#sectionDesc').textContent = desc;
     updateSegments(idx);
@@ -845,6 +936,7 @@
   }
 
   function startClass() {
+    if (pv.track) stopPreview(false);
     plan = buildPlan();
     yt.errors = 0;
     showScreen('class');
@@ -868,6 +960,7 @@
 
   function endClass() {
     clearInterval(tickTimer);
+    if (pv.track) stopPreview(false);
     const total = planTotalMs();
     showScreen('done');
     if (bodyscanOn) setBodyscan(false, { quiet: true, skipResume: true });
@@ -878,7 +971,7 @@
       `<div><b>${Math.round(total / 60000)}분</b><span>수업 시간</span></div>
        <div><b>${plan.length}</b><span>구간</span></div>
        <div><b>${FLOW_THEMES[state.theme].short}</b><span>플로우 테마</span></div>`;
-    $('#doneSummary').textContent = '60분의 흐름이 마무리되었습니다. 대기 음악으로 이어집니다.';
+    $('#doneSummary').textContent = Math.round(total / 60000) + '분의 흐름이 마무리되었습니다. 대기 음악으로 이어집니다.';
     $('#footStatus').textContent = '수업 종료';
     document.title = '수업 종료 · 소마토센서리 요가';
     setTimeout(() => {
@@ -990,8 +1083,8 @@
         <span class="theme-text"><strong>${t.name}</strong><span>${t.desc}</span></span>
       </button>`;
     }).join('');
-    $$('#bridgePicker button').forEach((b) => {
-      b.classList.toggle('is-on', Number(b.dataset.min) === state.bridge);
+    $$('#savaLenSetting button').forEach((b) => {
+      b.classList.toggle('is-on', Number(b.dataset.min) === (state.savaMin === 5 ? 5 : 10));
     });
     $('#poolList').innerHTML = Object.keys(SAVA_POOLS).map((k) => {
       const p = SAVA_POOLS[k];
@@ -1005,31 +1098,8 @@
     $('#sourceSelect').value = state.sourceMode;
     $('#chimeSwitch').checked = !!state.chime;
     $('#wakeSwitch').checked = !!state.wake;
-    const slots = [
-      ['opening', '오프닝'], ['bridge', '피아노 브릿지'],
-      ['flow:classic', '플로우 · 클래식'], ['flow:neoclassic', '플로우 · 네오클래식'],
-      ['flow:mantra', '플로우 · 만트라'], ['flow:christmas', '플로우 · 캐럴'],
-      ['cooldown', '컴다운'], ['savasana:song', '사바아사나 · 감성곡'],
-      ['savasana:piano', '사바아사나 · 건반'], ['savasana:bowl', '사바아사나 · 싱잉볼'],
-      ['savasana:vocal', '사바아사나 · 만트라'], ['savasana:bodyscan', '사바아사나 · 바디스캔'],
-      ['savasana:harp', '사바아사나 · 하프'], ['savasana:christmas', '사바아사나 · 크리스마스'],
-      ['closing', '마무리'], ['wait', '대기 음악']
-    ];
-    $('#addSlot').innerHTML = slots.map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
-    renderCustomList();
   }
 
-  function renderCustomList() {
-    const wrap = $('#customList');
-    const keys = Object.keys(state.custom || {}).filter((k) => (state.custom[k] || []).length);
-    if (!keys.length) { wrap.innerHTML = ''; return; }
-    wrap.innerHTML = keys.map((k) =>
-      state.custom[k].map((c, i) =>
-        `<div class="custom-row"><span>${escapeHtml(c.t || c.y)} · ${k}</span>
-         <button type="button" data-key="${k}" data-i="${i}">삭제</button></div>`
-      ).join('')
-    ).join('');
-  }
   function escapeHtml(s) {
     return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
@@ -1041,21 +1111,384 @@
     return m ? m[1] : null;
   }
 
-  function addCustomTrack() {
-    const id = parseYtId($('#addUrl').value);
-    const slot = $('#addSlot').value;
-    const title = $('#addTitle').value.trim();
-    if (!id) { toast('유튜브 주소를 확인해 주세요.'); return; }
-    state.custom[slot] = state.custom[slot] || [];
-    if (state.custom[slot].some((c) => c.y === id)) { toast('이미 추가된 곡입니다.'); return; }
-    state.custom[slot].push({ y: id, t: title || '직접 추가한 곡' });
+  function addCustom(key, url, title) {
+    const id = parseYtId(url);
+    if (!id) { toast('유튜브 주소를 확인해 주세요.'); return false; }
+    if (rawTracks(key).some((t) => t.y === id)) { toast('이미 이 파트에 있는 곡입니다.'); return false; }
+    state.custom[key] = state.custom[key] || [];
+    state.custom[key].push({ y: id, t: title || '직접 추가한 곡' });
     savePrefs();
-    renderCustomList();
-    $('#addUrl').value = ''; $('#addTitle').value = '';
-    toast('추가했습니다. 해당 구간에서 재생됩니다.');
-    if (mode === 'class' && plan[activeIndex] && keyForSection(plan[activeIndex]) === slot) {
-      playSection(activeIndex);
+    if (mode === 'class' && plan[activeIndex] && keyForSection(plan[activeIndex]) === key) {
+      playSection(activeIndex, { crossfade: true });
     }
+    return true;
+  }
+
+  /* ── 미리듣기 ─────────────────────────────────
+     본 재생과 별도의 유튜브 플레이어 한 개만 씁니다. 미리듣기를 시작하면
+     수업·대기 음악은 곷바로 멈추고, 정지(또는 한 곡 끝)하면 원래대로 돌아갑니다.
+     그래서 미리듣기끼리, 수업 음악과 겹쳐 소리가 나는 일이 없습니다. */
+  const pv = {
+    player: null, ready: false, track: '', key: '', pending: '', playing: false,
+    fade: null, watchdog: null, wait: null, vol: 0, restore: null
+  };
+
+  function ensurePreviewYT() {
+    if (pv.player || !window.YT || !window.YT.Player) return;
+    const host = $('#ytPreviewHost');
+    if (!host || host.querySelector('#ytPreviewPlayer')) return;
+    const div = document.createElement('div');
+    div.id = 'ytPreviewPlayer';
+    host.appendChild(div);
+    try {
+      pv.player = new YT.Player('ytPreviewPlayer', {
+        width: 200, height: 120,
+        playerVars: {
+          autoplay: 0, controls: 0, disablekb: 1, fs: 0, rel: 0,
+          modestbranding: 1, playsinline: 1, origin: location.origin
+        },
+        events: {
+          onReady: () => {
+            pv.ready = true;
+            try { pv.player.setVolume(0); pv.player.mute(); } catch (e) {}
+            if (pv.pending) { const y = pv.pending; pv.pending = ''; playPreviewNow(y); }
+          },
+          onStateChange: (e) => {
+            if (e.data === 1) { pv.playing = true; syncPreviewUI(); }
+            if (e.data === 0) previewEnded();
+          },
+          onError: () => previewFailed()
+        }
+      });
+    } catch (e) { pv.player = null; }
+  }
+
+  function duckForPreview() {
+    if (!pv.restore) {
+      pv.restore = {
+        classMode: mode === 'class' && !!plan[activeIndex],
+        ambient: !!state.ambientOn
+      };
+    }
+    clearYTTimers();
+    if (yt.player) { try { yt.player.pauseVideo(); } catch (e) {} }
+    if (audio && audio.playing) audio.stop(0.3);
+    owner = 'none';
+    yt.volume = 0;
+    $('#nowCard').classList.remove('is-playing');
+  }
+
+  function resumeAfterPreview() {
+    const r = pv.restore;
+    pv.restore = null;
+    if (!r) return;
+    if (r.classMode && mode === 'class' && plan[activeIndex]) {
+      playSection(activeIndex, { crossfade: true });
+      $('#nowCard').classList.add('is-playing');
+      $('#footStatus').textContent = '수업 진행 중';
+    } else if (r.ambient && state.ambientOn) {
+      playAmbient(true);
+    }
+  }
+
+  function previewTrack(y, key) {
+    if (!y) return;
+    if (pv.track === y && pv.playing) { stopPreview(true); return; }
+    duckForPreview();
+    pv.track = y;
+    pv.key = key;
+    pv.playing = false;
+    ensurePreviewYT();
+    syncPreviewUI();
+    if (!pv.ready) {
+      pv.pending = y;
+      ensureYT();
+      clearInterval(pv.wait);
+      let tries = 0;
+      pv.wait = setInterval(() => {
+        tries++;
+        if (pv.player) { clearInterval(pv.wait); pv.wait = null; return; }
+        if (window.YT && window.YT.Player) ensurePreviewYT();
+        if (tries > 20) { clearInterval(pv.wait); pv.wait = null; }
+      }, 500);
+      return;
+    }
+    playPreviewNow(y);
+  }
+
+  function playPreviewNow(y) {
+    if (!pv.player || !pv.ready) { pv.pending = y; return; }
+    clearTimeout(pv.watchdog);
+    clearInterval(pv.fade);
+    try { pv.player.unMute(); pv.player.setVolume(0); } catch (e) {}
+    pv.vol = 0;
+    try {
+      pv.player.loadVideoById({ videoId: y, startSeconds: 0 });
+    } catch (e) { previewFailed(); return; }
+    setTimeout(() => { try { pv.player.playVideo(); } catch (e) {} }, 260);
+    pvFadeTo(state.volume, 900);
+    pv.watchdog = setTimeout(() => {
+      if (pv.playing) return;
+      let st = -1, ct = 0, dur = 0;
+      try {
+        st = pv.player.getPlayerState();
+        ct = pv.player.getCurrentTime() || 0;
+        dur = pv.player.getDuration() || 0;
+      } catch (e) { return; }
+      if (st === 1 || ct > 1 || dur > 0) { pv.playing = true; syncPreviewUI(); return; }
+      previewFailed();
+    }, 9000);
+  }
+
+  function pvFadeTo(target, ms) {
+    if (!pv.player || !pv.player.setVolume) return;
+    clearInterval(pv.fade);
+    const from = pv.vol || 0;
+    const steps = Math.max(1, Math.round((ms || 600) / 50));
+    let i = 0;
+    pv.fade = setInterval(() => {
+      i++;
+      const s = i / steps;
+      pv.vol = from + (target - from) * (s * s * (3 - 2 * s));
+      try { pv.player.setVolume(clamp(pv.vol, 0, 100)); } catch (e) {}
+      if (i >= steps) { clearInterval(pv.fade); pv.fade = null; }
+    }, 50);
+  }
+
+  function stopPreview(restore) {
+    clearTimeout(pv.watchdog);
+    clearInterval(pv.fade);
+    pv.playing = false; pv.track = ''; pv.pending = '';
+    if (pv.player) {
+      try { pv.player.setVolume(0); pv.player.mute(); pv.player.stopVideo(); } catch (e) {}
+    }
+    pv.vol = 0;
+    syncPreviewUI();
+    if (restore) resumeAfterPreview();
+  }
+
+  function previewEnded() {
+    clearTimeout(pv.watchdog);
+    clearInterval(pv.fade);
+    pv.playing = false; pv.track = ''; pv.pending = '';
+    syncPreviewUI();
+    resumeAfterPreview();
+  }
+
+  function previewFailed() {
+    clearTimeout(pv.watchdog);
+    clearInterval(pv.fade);
+    pv.playing = false; pv.track = ''; pv.pending = '';
+    if (pv.player) { try { pv.player.stopVideo(); } catch (e) {} }
+    syncPreviewUI();
+    toast('이 곡은 여기서 미리듣기가 되지 않아요. ✕ 로 빼거나 다른 곡을 들어보세요.');
+    resumeAfterPreview();
+  }
+
+  /* ── 선곡 관리 한 페이지 ─────────────────────── */
+  const LIST_KEYS = function () {
+    return ['wait', 'opening', 'breath']
+      .concat(Object.keys(FLOW_THEMES).map((k) => 'flow:' + k))
+      .concat(['cooldown'])
+      .concat(Object.keys(SAVA_POOLS).filter((k) => k !== 'random').map((k) => 'savasana:' + k));
+  };
+
+  function subLabel(key) {
+    const p = key.split(':');
+    if (p[0] === 'flow') {
+      const t = FLOW_THEMES[p[1]];
+      return t.name + (state.theme === p[1] ? '<em class="pl-cur">지금 테마</em>' : '');
+    }
+    if (SAVA_POOLS[p[1]]) return SAVA_POOLS[p[1]].name;
+    return p[1];
+  }
+
+  function rowHtml(key, t, idx, pinN) {
+    const first = idx < pinN && idx === 0;
+    const pinned = idx < pinN;
+    const custom = !!t.custom;
+    return `<li class="trk${first ? ' is-first' : ''}${pinned ? ' is-pinned' : ''}${custom ? ' is-custom' : ''}" data-key="${key}" data-y="${t.y}">
+      <button class="trk-play" type="button" data-key="${key}" data-y="${t.y}" aria-label="미리듣기" aria-pressed="false">
+        <svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13L19 12 8 5.5Z"/></svg>
+        <svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.4"/></svg>
+      </button>
+      <div class="trk-body">
+        <span class="trk-title">${first ? '<em class="trk-first">첫 곡</em>' : ''}${escapeHtml(t.t || '—')}</span>
+        <span class="trk-artist">${escapeHtml(t.a || '')}</span>
+      </div>
+      ${custom ? `<button class="trk-del" type="button" data-key="${key}" data-y="${t.y}">삭제</button>` : ''}
+      <button class="trk-pin" type="button" data-key="${key}" data-y="${t.y}" aria-pressed="${first ? 'true' : 'false'}" aria-label="맨 앞으로">↑</button>
+      ${custom ? '' : `<button class="trk-x" type="button" data-key="${key}" data-y="${t.y}" aria-label="빼기">✕</button>`}
+    </li>`;
+  }
+
+  function groupHtml(key, label) {
+    const o = orderedTracks(key);
+    const ex = excludedOf(key).filter((id) => o.all.some((t) => t.y === id));
+    const rows = o.list.map((t, i) => rowHtml(key, t, i, o.pinN)).join('');
+    const exRows = ex.map((id) => {
+      const t = o.all.filter((x) => x.y === id)[0] || { t: id, a: '' };
+      return `<li><span>${escapeHtml(t.t || id)}<em>${escapeHtml(t.a || '')}</em></span>
+        <button class="restore" type="button" data-key="${key}" data-y="${id}">되돌리기</button></li>`;
+    }).join('');
+    return `<div class="pl-group" id="g-${key.replace(/:/g, '-')}">
+      <div class="pl-group-head"><span class="pl-group-name">${label || ''}</span>
+        <span class="pl-group-count">${o.list.length}곡 재생${ex.length ? ' · ' + ex.length + '곡 뺌' : ''}</span></div>
+      <ul class="trk-list">${rows}</ul>
+      <button class="add-toggle" type="button" data-key="${key}">＋ 유튜브 링크로 곡 추가</button>
+      <div class="add-inline" hidden data-key="${key}">
+        <input type="url" class="add-url" placeholder="https://www.youtube.com/watch?v=..." inputmode="url" autocomplete="off">
+        <input type="text" class="add-title" placeholder="곡 제목 (선택)" autocomplete="off">
+        <button class="add-go" type="button" data-key="${key}">추가</button>
+      </div>
+      ${ex.length ? `<details class="ex-wrap"><summary>뺀 곡 ${ex.length} · 되돌리기</summary><ul class="ex-list">${exRows}</ul></details>` : ''}
+    </div>`;
+  }
+
+  function renderPlaylist() {
+    const parts = [
+      { key: 'wait', title: '대기 음악', note: '수업 전과 수업 후에 흐르는 음악' },
+      { key: 'opening', title: '오프닝', note: '15분 · 호흡을 바닥으로 내려놓는 시간' },
+      { key: 'breath', title: '호흡', note: '3분 · 들이쉬고 내쉬는 짧은 피아노' },
+      { key: 'flow', title: '메인 플로우', note: '30분 · 고른 테마의 곡이 흐릅니다', subs: Object.keys(FLOW_THEMES) },
+      { key: 'cooldown', title: '컴다운', note: '30분 · 심박을 천천히 가라앉히는 시간' },
+      { key: 'savasana', title: '사바아사나', note: '5·10분 · 고른 풀의 곡이 흐릅니다. 랜덤 추천은 감성곡·건반·싱잉볼·만트라를 섞습니다', subs: Object.keys(SAVA_POOLS).filter((k) => k !== 'random') }
+    ];
+    $('#plBody').innerHTML = parts.map((part) => {
+      const inner = part.subs
+        ? part.subs.map((k) => groupHtml(part.key + ':' + k, subLabel(part.key + ':' + k))).join('')
+        : groupHtml(part.key, '');
+      return `<section class="pl-part">
+        <div class="pl-part-head"><h3>${part.title}</h3><span>${part.note}</span></div>
+        ${inner}
+      </section>`;
+    }).join('');
+    updateListCount();
+    syncPreviewUI();
+  }
+
+  function refreshGroup(key) {
+    const el = document.getElementById('g-' + key.replace(/:/g, '-'));
+    if (!el) return;
+    const label = key.indexOf(':') !== -1 ? subLabel(key) : '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = groupHtml(key, label);
+    const next = tmp.firstElementChild;
+    if (!next) return;
+    el.replaceWith(next);
+    syncPreviewUI();
+    updateListCount();
+  }
+
+  function updateListCount() {
+    let play = 0, ex = 0;
+    LIST_KEYS().forEach((k) => {
+      const o = orderedTracks(k);
+      play += o.list.length;
+      ex += excludedOf(k).filter((id) => o.all.some((t) => t.y === id)).length;
+    });
+    $('#plCount').textContent = play + '곡 재생' + (ex ? ' · ' + ex + '곡 뺌' : '');
+  }
+
+  function syncPreviewUI() {
+    const body = $('#plBody');
+    if (body) {
+      $$('.trk', body).forEach((row) => {
+        const on = !!pv.track && row.dataset.y === pv.track && row.dataset.key === pv.key;
+        row.classList.toggle('is-preview', on);
+        const b = row.querySelector('.trk-play');
+        if (b) b.setAttribute('aria-pressed', String(on));
+      });
+    }
+    const now = $('#plNow');
+    if (now) {
+      now.hidden = !pv.track;
+      if (pv.track) {
+        const t = rawTracks(pv.key).filter((x) => x.y === pv.track)[0] || {};
+        $('#plNowTitle').textContent = (pv.playing ? '미리듣기 · ' : '준비 중 · ') + (t.t || '');
+      }
+    }
+  }
+
+  function togglePin(key, y) {
+    const pins = pinsOf(key).slice();
+    const i = pins.indexOf(y);
+    if (i === 0) pins.shift();
+    else { if (i > -1) pins.splice(i, 1); pins.unshift(y); }
+    if (pins.length) state.pins[key] = pins; else delete state.pins[key];
+    savePrefs();
+    refreshGroup(key);
+    toast(i === 0 ? '첫 곡 지정을 풀었습니다.' : '이 곡을 맨 앞으로 올렸습니다.');
+  }
+
+  function excludeTrack(key, y) {
+    const o = orderedTracks(key);
+    if (o.list.filter((t) => t.y !== y).length === 0) {
+      toast('이 파트의 마지막 곡은 뺄 수 없어요. 수업이 비지 않도록 남겨 두었습니다.');
+      return;
+    }
+    const arr = excludedOf(key).slice();
+    if (arr.indexOf(y) === -1) arr.push(y);
+    state.excluded[key] = arr;
+    savePrefs();
+    /* 지금 재생 중인 큐에서도 바로 빼기 — 수업 중에 뺴도 그 곡은 다시 나오지 않습니다 */
+    const qi = yt.queue ? yt.queue.map((t) => t.y).indexOf(y) : -1;
+    const wasPlaying = qi > -1 && qi === yt.qi;
+    if (qi > -1) {
+      yt.queue.splice(qi, 1);
+      if (qi < yt.qi) yt.qi--;
+      if (yt.qi >= yt.queue.length) yt.qi = 0;
+    }
+    if (mode === 'class' && plan[activeIndex] && wasPlaying) {
+      if (yt.queue.length) nextTrack(false, { crossfade: true });   // 지금 흐르는 곡을 뺐다면 바로 다음 곡으로
+      else playSection(activeIndex, { crossfade: true });
+    }
+    refreshGroup(key);
+    toast('수업에서 뺐습니다. “뺀 곡”에서 되돌릴 수 있어요.');
+  }
+
+  function restoreTrack(key, y) {
+    state.excluded[key] = excludedOf(key).filter((id) => id !== y);
+    if (!state.excluded[key].length) delete state.excluded[key];
+    savePrefs();
+    refreshGroup(key);
+    toast('다시 재생 목록에 넣었습니다.');
+  }
+
+  function deleteCustom(key, y) {
+    if (!state.custom[key]) return;
+    state.custom[key] = state.custom[key].filter((c) => c.y !== y);
+    if (!state.custom[key].length) delete state.custom[key];
+    state.pins[key] = pinsOf(key).filter((id) => id !== y);
+    if (!state.pins[key].length) delete state.pins[key];
+    savePrefs();
+    refreshGroup(key);
+    toast('추가한 곡을 지웠습니다.');
+  }
+
+  function openPlaylist() {
+    if (openSheetEl) closeSheet();
+    renderPlaylist();
+    const el = $('#playlistView');
+    el.hidden = false;
+    requestAnimationFrame(() => el.classList.add('is-open'));
+  }
+
+  function closePlaylist() {
+    if (pv.track) stopPreview(true);
+    const el = $('#playlistView');
+    el.classList.remove('is-open');
+    setTimeout(() => { el.hidden = true; }, 340);
+  }
+
+  /* 구간 타임라인에서 바로 그 구간으로 — 60분 수업에서 건너뛸 때 */
+  function jumpTo(idx) {
+    if (mode !== 'class') return;
+    idx = clamp(idx, 0, plan.length - 1);
+    const base = pausedAt || Date.now();
+    startedAt = base - boundaries()[idx] - pausedTotal;
+    enterSection(idx, { crossfade: true });
+    tick();
   }
 
   /* ── 이벤트 연결 ────────────────────────────── */
@@ -1076,14 +1509,14 @@
     $('#skipBtn').addEventListener('click', skipTrack);
     const jump = (delta) => {
       if (mode !== 'class') return;
-      const idx = clamp(currentIndex(Date.now()) + delta, 0, plan.length - 1);
-      const base = pausedAt || Date.now();
-      startedAt = base - boundaries()[idx] - pausedTotal;
-      enterSection(idx, { crossfade: true });
-      tick();
+      jumpTo(currentIndex(Date.now()) + delta);
     };
     $('#nextBtn').addEventListener('click', () => jump(1));
     $('#prevBtn').addEventListener('click', () => jump(-1));
+    $('#jumpRow').addEventListener('click', (e) => {
+      const b = e.target.closest('.jump-chip');
+      if (b) jumpTo(Number(b.dataset.i));
+    });
     $('#savaChips').addEventListener('click', (e) => {
       const b = e.target.closest('.sava-chip');
       if (!b) return;
@@ -1127,6 +1560,7 @@
     });
 
     $('#idleThemeChip').addEventListener('click', () => { renderThemeSheet(); openSheet('sheetTheme'); });
+    $('#idleLenChip').addEventListener('click', () => { renderThemeSheet(); openSheet('sheetTheme'); });
     $('#idleSavaChip').addEventListener('click', () => { renderThemeSheet(); openSheet('sheetTheme'); });
 
     $('#themeList').addEventListener('click', (e) => {
@@ -1140,12 +1574,13 @@
       }
       toast(FLOW_THEMES[state.theme].name + ' 선택');
     });
-    $('#bridgePicker').addEventListener('click', (e) => {
-      const b = e.target.closest('button');
-      if (!b) return;
-      state.bridge = Number(b.dataset.min); savePrefs();
-      renderThemeSheet(); renderIdlePlan();
-      if (mode === 'class') toast('브릿지 길이는 다음 수업부터 적용됩니다.');
+    ['#savaLenSetting', '#savaLenPicker'].forEach((sel) => {
+      const el = $(sel);
+      if (!el) return;
+      el.addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-min]');
+        if (b) setSavaMin(Number(b.dataset.min));
+      });
     });
     $('#poolList').addEventListener('click', (e) => {
       const b = e.target.closest('.pool-item');
@@ -1184,18 +1619,65 @@
       $('#wakePill').setAttribute('aria-pressed', String(state.wake));
       if (state.wake) requestWake(); else releaseWake();
     });
-    $('#addBtn').addEventListener('click', addCustomTrack);
-    $('#customList').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-key]');
-      if (!b) return;
-      const k = b.dataset.key, i = Number(b.dataset.i);
-      state.custom[k].splice(i, 1);
-      if (!state.custom[k].length) delete state.custom[k];
-      savePrefs(); renderCustomList();
-      toast('삭제했습니다.');
+    /* ── 선곡 관리 ─────────────────────────────── */
+    $('#playlistBtn').addEventListener('click', openPlaylist);
+    $('#plClose').addEventListener('click', closePlaylist);
+    $('#settingsPlaylistBtn').addEventListener('click', () => {
+      closeSheet();
+      setTimeout(openPlaylist, 200);
     });
+    $('#plNowStop').addEventListener('click', () => stopPreview(true));
+    $('#plRestoreAll').addEventListener('click', () => {
+      state.excluded = {};
+      savePrefs();
+      renderPlaylist();
+      toast('뺀 곡을 모두 되돌렸습니다.');
+    });
+    $('#plUnpinAll').addEventListener('click', () => {
+      state.pins = {};
+      savePrefs();
+      renderPlaylist();
+      toast('첫 곡 지정을 모두 풀었습니다.');
+    });
+    $('#plBody').addEventListener('click', (e) => {
+      const play = e.target.closest('.trk-play');
+      if (play) { previewTrack(play.dataset.y, play.dataset.key); return; }
+      const pin = e.target.closest('.trk-pin');
+      if (pin) { togglePin(pin.dataset.key, pin.dataset.y); return; }
+      const x = e.target.closest('.trk-x');
+      if (x) { excludeTrack(x.dataset.key, x.dataset.y); return; }
+      const del = e.target.closest('.trk-del');
+      if (del) { deleteCustom(del.dataset.key, del.dataset.y); return; }
+      const rs = e.target.closest('.restore');
+      if (rs) { restoreTrack(rs.dataset.key, rs.dataset.y); return; }
+      const tg = e.target.closest('.add-toggle');
+      if (tg) {
+        const f = tg.parentElement.querySelector('.add-inline');
+        if (!f) return;
+        f.hidden = !f.hidden;
+        if (!f.hidden) f.querySelector('.add-url').focus();
+        return;
+      }
+      const go = e.target.closest('.add-go');
+      if (go) {
+        const f = go.parentElement;
+        const url = f.querySelector('.add-url').value;
+        const title = f.querySelector('.add-title').value.trim();
+        if (addCustom(go.dataset.key, url, title)) {
+          f.hidden = true;
+          refreshGroup(go.dataset.key);
+          toast('추가했습니다. 이 파트에서 재생됩니다.');
+        }
+      }
+    });
+
     $('#resetBtn').addEventListener('click', () => {
-      state.custom = {}; savePrefs(); renderCustomList(); toast('저장된 곡을 초기화했습니다.');
+      state.custom = {};
+      state.pins = {};
+      state.excluded = {};
+      savePrefs();
+      if (!$('#playlistView').hidden) renderPlaylist();
+      toast('추가한 곡과 선곡 설정을 초기화했습니다.');
     });
 
     $('#againBtn').addEventListener('click', () => { if (state.ambientOn) stopAmbient(); startClass(); });
@@ -1251,7 +1733,11 @@
 
   document.addEventListener('DOMContentLoaded', init);
   window.__somato = {
-    state, buildPlan,
+    state, buildPlan, orderedTracks, queuedList, openPlaylist, closePlaylist,
+    setSavaMin, jumpTo,
+    get pv() { return pv; },
+    get previewTrack() { return previewTrack; },
+    get stopPreview() { return stopPreview; },
     get plan() { return plan; },
     get yt() { return yt; },
     get audio() { return audio; },

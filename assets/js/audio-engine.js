@@ -45,6 +45,8 @@
                noteGain: 0.08, hold: 3.0, pattern: [0, 2, 1, 3, 2, 4], bass: 0.045 },
     bridge:  { chords: CH.piano, chordDur: 12, voice: 'piano', step: 0.62, density: 0.8,
                noteGain: 0.09, hold: 2.4, pattern: [0, 2, 4, 1, 3, 5, 2, 4], bass: 0.05, double: 0.15 },
+    breath:  { chords: CH.piano, chordDur: 12, voice: 'piano', step: 0.62, density: 0.8,
+               noteGain: 0.09, hold: 2.4, pattern: [0, 2, 4, 1, 3, 5, 2, 4], bass: 0.05, double: 0.15 },
     'flow-classic': { chords: CH.warm, chordDur: 13, voice: 'harp', step: 0.6, density: 0.72,
                noteGain: 0.085, hold: 2.2, pattern: [0, 2, 1, 4, 3, 5, 2, 6], bass: 0.05 },
     'flow-neo': { chords: CH.neo, chordDur: 12, voice: 'piano', step: 0.58, density: 0.75,

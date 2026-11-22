@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>소마토센서리 요가 · 클래스 음악</title>
-<meta name="description" content="비비아요가앳홈 60분 소마토센서리 요가 수업 음악 플레이어">
+<meta name="description" content="비비아요가앳홈 소마토센서리 요가 수업 음악 플레이어 — 오프닝 15분 · 호흡 3분 · 메인 플로우 30분 · 컴다운 30분 · 사바아사나 5/10분">
 <meta name="theme-color" content="#F3EFE7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="stylesheet" href="assets/css/style.css?v=24e">
+<link rel="stylesheet" href="assets/css/style.css?v=25a">
 <script>
 /* 진단용: 콘솔 오류를 조용히 모아 둡니다 (사용자 화면에는 영향 없음) */
 window.__somatoErrors = [];
@@ -33,6 +33,10 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
       </div>
     </div>
     <div class="topbar-actions">
+      <button class="pl-btn" id="playlistBtn" type="button" aria-label="선곡 관리 열기">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h10M4 11.5h10M4 16.5h6"/><circle cx="17.6" cy="15.4" r="2.6"/><path d="M20.2 15.4V8.4l-3 .8"/></svg>
+        <span>선곡 관리</span>
+      </button>
       <button class="icon-btn" id="themeToggle" type="button" aria-label="라이트 · 다크 모드 전환">
         <svg class="ico ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
         <svg class="ico ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 14.4A8.3 8.3 0 0 1 9.6 3.8a8.4 8.4 0 1 0 10.6 10.6Z"/></svg>
@@ -47,9 +51,9 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
 
     <!-- ── 대기 화면 ────────────────────────────────── -->
     <section class="screen is-active" id="screenIdle" aria-label="수업 시작 전">
-      <p class="eyebrow">SIXTY MINUTES · ONE BREATH</p>
+      <p class="eyebrow">NINETY MINUTES · ONE BREATH</p>
       <h1 class="display">소마토센서리<br>요가 클래스</h1>
-      <p class="lede">호흡으로 시작해 사바아사나로 닫히는 60분.<br>구간이 바뀔 때마다 음악이 천천히 이어집니다.</p>
+      <p class="lede">오프닝 15분에서 사바아사나로 닫히는 수업.<br>60분 수업은 ▶| 로 필요한 구간만 이어가세요.</p>
 
       <ol class="plan" id="idlePlan"></ol>
 
@@ -58,8 +62,12 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
           <span class="chip-label">플로우 테마</span>
           <span class="chip-value" id="idleThemeValue">클래식 소마토 플로우</span>
         </button>
-        <button class="chip" id="idleSavaChip" type="button">
+        <button class="chip" id="idleLenChip" type="button">
           <span class="chip-label">사바아사나</span>
+          <span class="chip-value" id="idleLenValue">10분</span>
+        </button>
+        <button class="chip" id="idleSavaChip" type="button">
+          <span class="chip-label">사바아사나 음악</span>
           <span class="chip-value" id="idleSavaValue">오늘의 랜덤 추천</span>
         </button>
       </div>
@@ -70,7 +78,7 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
           <span class="dot" aria-hidden="true"></span><span id="ambientBtnLabel">대기 음악 켜기</span>
         </button>
       </div>
-      <p class="hint" id="idleHint">수업 전에는 잔잔한 배경 음악이 반복됩니다.</p>
+      <p class="hint" id="idleHint">대기 음악은 잔잔하게 반복됩니다. <b>선곡 관리</b>에서 곡을 직접 들어보고 빼실 수 있어요.</p>
     </section>
 
     <!-- ── 수업 진행 화면 ─────────────────────────────── -->
@@ -78,14 +86,15 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
       <div class="section-head">
         <p class="eyebrow" id="sectionEn">OPENING</p>
         <h2 class="display section-name" id="sectionKo">오프닝</h2>
-        <p class="section-desc" id="sectionDesc">호흡을 바닥으로 내려놓는 10분</p>
+        <p class="section-desc" id="sectionDesc">호흡을 바닥으로 내려놓는 15분</p>
       </div>
 
       <div class="time-block">
-        <div class="time-main"><span id="timeLeft">10:00</span><span class="time-unit">남음</span></div>
-        <div class="time-sub"><span id="timeElapsed">00:00</span> 경과 · 전체 <span id="timeTotal">60:00</span></div>
+        <div class="time-main"><span id="timeLeft">15:00</span><span class="time-unit">남음</span></div>
+        <div class="time-sub"><span id="timeElapsed">00:00</span> 경과 · 전체 <span id="timeTotal">88:00</span></div>
         <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
         <div class="segments" id="segments" aria-hidden="true"></div>
+        <div class="jump" id="jumpRow" aria-label="구간 바로 가기"></div>
       </div>
 
       <div class="now-card" id="nowCard">
@@ -151,6 +160,13 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
           </span>
         </div>
         <div class="sava-chips" id="savaChips"></div>
+        <div class="sava-len">
+          <span class="sava-len-label">사바아사나 길이</span>
+          <div class="seg-picker seg-small" id="savaLenPicker">
+            <button type="button" data-min="5">5분</button>
+            <button type="button" data-min="10">10분</button>
+          </div>
+        </div>
       </div>
 
       <button class="end-btn" id="endBtn" type="button">수업 마치기</button>
@@ -160,7 +176,7 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
     <section class="screen" id="screenDone" aria-label="수업 종료">
       <p class="eyebrow">NAMAS TE</p>
       <h2 class="display big">수업이<br>끝났습니다</h2>
-      <p class="lede" id="doneSummary">60분의 흐름이 마무리되었습니다.</p>
+      <p class="lede" id="doneSummary">수업의 흐름이 마무리되었습니다.</p>
       <div class="done-stats" id="doneStats"></div>
       <div class="idle-actions">
         <button class="btn-primary" id="againBtn" type="button">새 수업 시작</button>
@@ -189,11 +205,10 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
   <p class="sheet-note">메인 플로우 30분의 결을 고릅니다. 수업 중에도 바꿀 수 있습니다.</p>
   <div class="theme-list" id="themeList"></div>
 
-  <h3 class="sheet-sub">피아노 브릿지 길이</h3>
-  <div class="seg-picker" id="bridgePicker">
-    <button type="button" data-min="3">3분</button>
-    <button type="button" data-min="4" class="is-on">4분</button>
+  <h3 class="sheet-sub">사바아사나 길이</h3>
+  <div class="seg-picker" id="savaLenSetting">
     <button type="button" data-min="5">5분</button>
+    <button type="button" data-min="10">10분</button>
   </div>
 
   <h3 class="sheet-sub">사바아사나 추천 풀</h3>
@@ -229,27 +244,49 @@ window.addEventListener('unhandledrejection', function (e) { try { window.__soma
 
   <p class="sheet-note">화면을 잠그면 iOS 정책상 <b>유튜브 임베드</b>는 멈출 수 있어요. 화면을 꺼야 할 때는 <b>화면 유지 + 다크 모드</b>를 함께 켜 두거나, 사운드 소스를 <b>내장 사운드</b>로 바꾸면 재생이 이어집니다.</p>
 
-  <h3 class="sheet-sub">유튜브 링크로 곡 추가</h3>
-  <p class="sheet-note">유튜브에서 곡을 열어 주소를 복사한 뒤 붙여 넣으세요. 이 기기에만 저장됩니다.<br>유튜브 광고는 IFrame 플레이어가 알려주지 않아 그대로 재생될 수 있습니다. 앱은 광고 여부와 관계없이 <b>내장 사운드를 겹치지 않게</b> 합니다. 광고 없는 수업을 원하시면 사운드 소스를 <b>내장 사운드</b>로 바꿔 주세요.</p>
-  <div class="add-form">
-    <select id="addSlot"></select>
-    <input type="url" id="addUrl" placeholder="https://www.youtube.com/watch?v=..." inputmode="url" autocomplete="off">
-    <input type="text" id="addTitle" placeholder="곡 제목 (선택)" autocomplete="off">
-    <button class="btn-primary small" id="addBtn" type="button">추가</button>
-  </div>
-  <div class="custom-list" id="customList"></div>
+  <h3 class="sheet-sub">선곡</h3>
+  <p class="sheet-note">곡을 직접 들어보고 빼거나 첫 곡으로 올리는 일은 위쪽 <b>선곡 관리</b> 한 페이지에서 하실 수 있습니다. 유튜브 광고는 IFrame 플레이어가 알려주지 않아 그대로 재생될 수 있고, 앱은 광고 여부와 관계없이 <b>내장 사운드를 겹치지 않게</b> 합니다. 광고 없는 수업을 원하시면 사운드 소스를 <b>내장 사운드</b>로 바꿔 주세요.</p>
+  <button class="btn-ghost" id="settingsPlaylistBtn" type="button">선곡 관리 열기</button>
 
   <div class="sheet-foot">
     <span id="versionLine">somato-music · v1.0</span>
-    <button class="link-btn danger" id="resetBtn" type="button">저장된 곡 초기화</button>
+    <button class="link-btn danger" id="resetBtn" type="button">추가한 곡 초기화</button>
   </div>
 </aside>
 
+<!-- ── 선곡 관리 (한 페이지) ───────────────────────── -->
+<div class="playlist" id="playlistView" hidden aria-label="선곡 관리">
+  <div class="pl-wrap">
+    <header class="pl-head">
+      <button class="pl-close" id="plClose" type="button" aria-label="선곡 관리 닫기">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 5.5 6.5 12 13 18.5"/><path d="M6.5 12h11"/></svg>
+      </button>
+      <div class="pl-head-text">
+        <p class="eyebrow">PLAYLIST</p>
+        <h2>선곡 관리</h2>
+      </div>
+      <span class="pl-count" id="plCount">—</span>
+    </header>
+    <p class="pl-note">파트별 곡을 그 자리에서 들어보고, 마음에 들지 않는 곡은 빼 두세요.<br>바꾼 내용은 이 기기에 저장되고 수업 재생에 바로 반영됩니다.</p>
+    <div id="plBody"></div>
+    <div class="pl-foot">
+      <button class="link-btn" id="plRestoreAll" type="button">뺀 곡 모두 되돌리기</button>
+      <button class="link-btn" id="plUnpinAll" type="button">첫 곡 지정 모두 해제</button>
+    </div>
+    <div class="pl-now" id="plNow" hidden>
+      <span class="pl-now-dot" aria-hidden="true"></span>
+      <span class="pl-now-title" id="plNowTitle">미리듣기</span>
+      <button type="button" id="plNowStop">■ 정지</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div id="ytHost" aria-hidden="true"></div>
+<div id="ytPreviewHost" aria-hidden="true"></div>
 
-<script src="assets/js/data.js?v=24e"></script>
-<script src="assets/js/audio-engine.js?v=24e"></script>
-<script src="assets/js/app.js?v=24e"></script>
+<script src="assets/js/data.js?v=25a"></script>
+<script src="assets/js/audio-engine.js?v=25a"></script>
+<script src="assets/js/app.js?v=25a"></script>
 </body>
 </html>
