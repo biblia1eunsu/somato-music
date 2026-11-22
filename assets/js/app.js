@@ -1132,7 +1132,8 @@
      그래서 미리듣기끼리, 수업 음악과 겹쳐 소리가 나는 일이 없습니다. */
   const pv = {
     player: null, ready: false, track: '', key: '', pending: '', playing: false,
-    fade: null, watchdog: null, wait: null, adTimer: null, ad: false, vol: 0, restore: null
+    fade: null, watchdog: null, wait: null, adTimer: null, ad: false, ramped: false,
+    nudges: 0, live: 0, vol: 0, restore: null
   };
 
   function ensurePreviewYT() {
@@ -1261,29 +1262,42 @@
   }
 
   /* 미리듣기는 광고부터 조용하게 — 본 음악이 확인되기 전까지는 무음으로 두고
-     실제 곡이 시작된 순간에만 볼륨을 올립니다 (수업 재생과 같은 규칙) */
+     실제 곡이 시작된 순간에만 볼륨을 올립니다 (수업 재생과 같은 규칙).
+     광고를 지나 화면이 멈춰 있으면 재생을 한 번씩 밀어 줍니다. */
   function watchPreviewAd() {
     clearInterval(pv.adTimer);
     pv.ad = false;
+    pv.ramped = false;
+    pv.nudges = 0;
+    pv.live = 0;
     pv.adTimer = setInterval(() => {
       if (!pv.player || !pv.track) { clearInterval(pv.adTimer); pv.adTimer = null; return; }
-      let dur = 0, vid = '';
+      let dur = 0, vid = '', st = -1;
       try {
         dur = pv.player.getDuration() || 0;
+        st = pv.player.getPlayerState();
         const vd = pv.player.getVideoData ? (pv.player.getVideoData() || {}) : {};
         vid = vd.video_id || '';
       } catch (e) { return; }
       const mine = !!vid && vid === pv.track;
-      if (dur >= 100 || (mine && dur > 20)) {
-        clearInterval(pv.adTimer);
-        pv.adTimer = null;
-        pv.ad = false;
-        pvFadeTo(state.volume, 900);
-        syncPreviewUI();
+      const real = mine && (dur >= 100 || dur > 20);
+      if (!real) {
+        if (!pv.ad && (dur > 0 || (!!vid && !mine))) { pv.ad = true; syncPreviewUI(); }
         return;
       }
-      if (!pv.ad) { pv.ad = true; syncPreviewUI(); }
-    }, 400);
+      if (pv.ad) { pv.ad = false; syncPreviewUI(); }
+      if (!pv.ramped) { pv.ramped = true; pvFadeTo(state.volume, 900); }
+      if (st === 1) {
+        pv.playing = true;
+        pv.live++;
+        if (pv.live >= 2) { clearInterval(pv.adTimer); pv.adTimer = null; syncPreviewUI(); }
+        return;
+      }
+      if ((st === -1 || st === 2 || st === 5) && pv.nudges < 5) {
+        pv.nudges++;
+        try { pv.player.playVideo(); } catch (e) {}
+      }
+    }, 500);
   }
 
   function pvFadeTo(target, ms) {
