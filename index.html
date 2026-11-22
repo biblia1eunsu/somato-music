@@ -14,6 +14,12 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="stylesheet" href="assets/css/style.css">
+<script>
+/* 진단용: 콘솔 오류를 조용히 모아 둡니다 (사용자 화면에는 영향 없음) */
+window.__somatoErrors = [];
+window.addEventListener('error', function (e) { try { window.__somatoErrors.push(String(e.message || e.error)); } catch (_) {} });
+window.addEventListener('unhandledrejection', function (e) { try { window.__somatoErrors.push('promise: ' + String(e.reason)); } catch (_) {} });
+</script>
 </head>
 <body>
 <div class="app" id="app">

@@ -837,6 +837,11 @@
   /* ── 시작 ───────────────────────────────────── */
   function init() {
     loadPrefs();
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get('dark') === '1') state.dark = true;
+      if (q.get('theme') && FLOW_THEMES[q.get('theme')]) state.theme = q.get('theme');
+    } catch (e) {}
     applyTheme();
     plan = buildPlan();
     renderIdlePlan();

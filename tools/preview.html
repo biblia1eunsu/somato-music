@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>소마토 음악 · 기기 미리보기</title>
+<style>
+  html,body{margin:0;background:#E7E1D6;min-height:100vh}
+  body{display:flex;align-items:center;justify-content:center;gap:24px;padding:24px;
+    font:13px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;color:#6b6357;
+    box-sizing:border-box}
+  .phone{border-radius:46px;padding:10px;background:#1c1a17;box-shadow:0 34px 90px rgba(60,45,30,.3);flex:none}
+  iframe{display:block;width:390px;height:844px;border:0;border-radius:38px;background:#F3EFE7}
+  .cap{position:fixed;left:24px;bottom:18px;letter-spacing:.18em;text-transform:uppercase;font-size:9px;color:#9a9184}
+</style>
+</head>
+<body>
+  <div class="phone"><iframe id="f" src="../index.html"></iframe></div>
+  <div class="cap">somato-music · device preview</div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const w = Number(p.get('w')) || 390, h = Number(p.get('h')) || 844;
+    const f = document.getElementById('f');
+    f.style.width = w + 'px'; f.style.height = h + 'px';
+    if (p.get('dark') === '1') f.src = '../index.html?dark=1';
+  </script>
+</body>
+</html>
