@@ -80,14 +80,17 @@ GitHub Pages — `main` 브랜치 루트. `https://biblia1eunsu.github.io/somato
 
 ## 검증 기록
 
-- `tools/verify.html` · `tools/verify2.html` — 실제 IFrame 플레이어로 후보 영상을 순서대로
-  음소거 재생하며 `Error 101/150` 여부를 기록했습니다. 1차 92개 + 2차 15개를 검사했고,
-  임베드 금지 영상 4개(에이나우디 공식 · 레이첼 야마가타 공식 · Deva Premal Topic ·
-  Reiki Zen 채널)를 걸러낸 뒤 수록곡 98개 전부 재생을 확인했습니다.
+- `tools/verify.html` · `tools/verify2.html` — 기존 수록곡(1차 92 + 2차 15) 전수 IFrame 재생 검사.
+- `tools/verify3.html` — 사바아사나 보강 후보 49건을 실제 IFrame 플레이어로 재생 검사했습니다.
+  Error 101/150 이 뜬 2건(Yamagata You Won't Let Me 공식 채널 · Norah Jones Come Away With Me 공식 채널)은
+  수록에서 빠지고 같은 곡의 다른 검증된 업로드로 대신했습니다. 검사 환경 특성상 광고 뒤 본 영상이
+  자동으로 시작하지 않는 경우가 많아(앱은 내장 사운드로 끊김 없이 이어갑니다), 광고가 없는 영상은
+  전부 즉시 재생을 확인했습니다.
 - 라이브: https://biblia1eunsu.github.io/somato-music/
-- 확인한 동작 — 수업 시작·구간 자동/수동 전환, 볼륨 페이드, 테마 4종 전환, 사바아사나 풀 선택과
-  랜덤 추천, 싱잉볼 타종, 화면 유지(Wake Lock), 라이트/다크, 유튜브 링크 추가·삭제,
-  내장 사운드 전환과 실시간 합성(출력 레벨 측정), PWA 매니페스트·서비스 워커, 콘솔 오류 0건.
+- 확인한 동작 — 수업 시작·구간 자동/수동 전환에서 3.5초 크로스페이드(기존 음악이 줄며 새 음악이 겹쳐 올라옴),
+  바디스캔 명상 버튼(전용 드론 · 숨결 사운드와 배지 전환), 오늘의 랜덤 추천 믹스 대기열,
+  사바아사나 풀 선택, 싱잉볼 타종, 화면 유지(Wake Lock) 자동 재획득, Media Session 메타데이터,
+  내장 사운드의 MediaStream → `<audio>` 출력 전환, 라이트/다크, 유튜브 링크 추가·삭제, 콘솔 오류 0건.
 
 ## 알아 둘 것
 
